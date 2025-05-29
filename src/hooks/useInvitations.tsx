@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -16,6 +15,7 @@ export interface Invitation {
   accepted_at: string | null;
   companies?: {
     name: string;
+    description?: string;
   };
   invited_by_profile?: {
     full_name: string;
@@ -42,7 +42,7 @@ export function useInvitations(companyId?: string) {
         .from('invitations')
         .select(`
           *,
-          companies!inner(name),
+          companies!inner(name, description),
           invited_by_profile:profiles!invitations_invited_by_fkey(full_name)
         `)
         .eq('company_id', companyId)
@@ -167,26 +167,23 @@ export function useAcceptInvitationByCode() {
   });
 }
 
-// Hook modificado para funcionar sem autenticação
+// Hook modificado para funcionar sem autenticação usando busca pública
 export function useGetInvitationByCode(inviteCode?: string) {
   return useQuery({
     queryKey: ['invitation-by-code', inviteCode],
     queryFn: async () => {
       if (!inviteCode) return null;
       
-      // Esta query não precisa de autenticação para funcionar
-      const { data, error } = await supabase
-        .from('invitations')
-        .select(`
-          *,
-          companies(name, description)
-        `)
-        .eq('invite_code', inviteCode)
-        .eq('status', 'pending')
-        .gt('expires_at', new Date().toISOString())
-        .single();
+      // Busca pública do convite usando a função RPC que não requer autenticação
+      const { data, error } = await supabase.rpc('get_invitation_by_code', {
+        invite_code: inviteCode
+      });
       
-      if (error) return null;
+      if (error) {
+        console.log('Erro ao buscar convite:', error);
+        return null;
+      }
+      
       return data;
     },
     enabled: !!inviteCode,

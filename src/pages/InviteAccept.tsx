@@ -1,11 +1,11 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetInvitationByCode, useAcceptInvitationByCode } from '@/hooks/useInvitations';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { InviteInfo } from '@/components/invite/InviteInfo';
-import { AuthForm } from '@/components/invite/AuthForm';
+import { InviteSignupForm } from '@/components/invite/InviteSignupForm';
 import { AcceptInviteCard } from '@/components/invite/AcceptInviteCard';
 import { EmailMismatchCard } from '@/components/invite/EmailMismatchCard';
 import { LoadingState } from '@/components/invite/LoadingState';
@@ -22,8 +22,9 @@ interface AcceptInvitationResult {
 const InviteAccept = () => {
   const { inviteCode } = useParams<{ inviteCode: string }>();
   const navigate = useNavigate();
-  const { user, signUp, signIn } = useAuth();
+  const { user, signUp } = useAuth();
   const { toast } = useToast();
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
   const { data: invitation, isLoading } = useGetInvitationByCode(inviteCode);
   const acceptInvitation = useAcceptInvitationByCode();
@@ -59,38 +60,29 @@ const InviteAccept = () => {
     }
   };
 
-  const handleAuth = async (email: string, password: string, fullName?: string, isLogin?: boolean) => {
+  const handleInviteSignup = async (email: string, password: string, fullName: string) => {
     if (!invitation) return;
 
-    // Verificar se o email informado confere com o do convite
-    if (email !== invitation.email) {
-      toast({
-        title: 'Email inválido',
-        description: 'O email deve ser o mesmo do convite recebido.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+    setIsSigningUp(true);
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) throw error;
-      } else {
-        const { error } = await signUp(email, password, fullName || '');
-        if (error) throw error;
-        
-        toast({
-          title: 'Conta criada!',
-          description: 'Verifique seu email para confirmar a conta e depois aceite o convite.',
-        });
-      }
+      const { error } = await signUp(email, password, fullName);
+      if (error) throw error;
+      
+      toast({
+        title: 'Conta criada com sucesso!',
+        description: 'Verificando seu email e processando o convite...',
+      });
+
+      // Após o cadastro bem-sucedido, o useEffect detectará o usuário logado
+      // e tentará aceitar o convite automaticamente
     } catch (error: any) {
       toast({
-        title: isLogin ? 'Erro no login' : 'Erro no cadastro',
+        title: 'Erro ao criar conta',
         description: error.message,
         variant: 'destructive',
       });
+    } finally {
+      setIsSigningUp(false);
     }
   };
 
@@ -112,16 +104,17 @@ const InviteAccept = () => {
           expiresAt={invitation.expires_at}
         />
 
-        {/* Formulário de Autenticação */}
+        {/* Fluxo para usuário não logado - Cadastro específico para convite */}
         {!user && (
-          <AuthForm 
+          <InviteSignupForm 
             email={invitation.email}
-            onSubmit={handleAuth}
-            isSubmitting={false}
+            companyName={invitation.companies?.name || ''}
+            onSubmit={handleInviteSignup}
+            isSubmitting={isSigningUp}
           />
         )}
 
-        {/* Aceitar Convite (usuário logado) */}
+        {/* Aceitar Convite (usuário logado com email correto) */}
         {user && user.email === invitation.email && (
           <AcceptInviteCard 
             userEmail={user.email}
