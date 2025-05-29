@@ -204,7 +204,7 @@ export const UserManagement = () => {
             </div>
           ) : (
             <div className="grid gap-4">
-              {invitations.map((invitation: Invitation) => (
+              {invitations.map((invitation) => (
                 <Card key={invitation.id}>
                   <CardContent className="p-6">
                     <div className="space-y-4">

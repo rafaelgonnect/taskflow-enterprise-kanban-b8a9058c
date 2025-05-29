@@ -8,7 +8,7 @@ export interface Invitation {
   email: string;
   company_id: string;
   invited_by: string;
-  status: 'pending' | 'accepted' | 'expired';
+  status: string; // Mudado para string genérico para compatibilidade com o banco
   created_at: string;
   expires_at: string;
   invite_code: string;
@@ -20,6 +20,14 @@ export interface Invitation {
   invited_by_profile?: {
     full_name: string;
   };
+}
+
+// Interface para o resultado da função RPC
+interface AcceptInvitationResult {
+  success: boolean;
+  error?: string;
+  company_id?: string;
+  company_name?: string;
 }
 
 export function useInvitations(companyId?: string) {
@@ -143,11 +151,14 @@ export function useAcceptInvitationByCode() {
       
       if (error) throw error;
       
-      if (!data.success) {
-        throw new Error(data.error);
+      // Type assertion para o resultado da função RPC
+      const result = data as AcceptInvitationResult;
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erro desconhecido');
       }
       
-      return data;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });

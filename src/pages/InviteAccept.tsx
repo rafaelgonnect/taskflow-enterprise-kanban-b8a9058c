@@ -9,6 +9,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Building2, Mail, Calendar, Check, X, Loader2 } from 'lucide-react';
 
+// Interface para o resultado da função RPC
+interface AcceptInvitationResult {
+  success: boolean;
+  error?: string;
+  company_id?: string;
+  company_name?: string;
+}
+
 const InviteAccept = () => {
   const { inviteCode } = useParams<{ inviteCode: string }>();
   const navigate = useNavigate();
@@ -43,9 +51,12 @@ const InviteAccept = () => {
     try {
       const result = await acceptInvitation.mutateAsync(inviteCode);
       
+      // Type assertion para acessar as propriedades
+      const acceptResult = result as AcceptInvitationResult;
+      
       toast({
         title: 'Convite aceito!',
-        description: `Você agora faz parte da empresa ${result.company_name}`,
+        description: `Você agora faz parte da empresa ${acceptResult.company_name}`,
       });
 
       navigate('/');
