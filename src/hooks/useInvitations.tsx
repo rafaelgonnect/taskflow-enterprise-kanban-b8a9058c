@@ -8,7 +8,7 @@ export interface Invitation {
   email: string;
   company_id: string;
   invited_by: string;
-  status: string; // Mudado para string genérico para compatibilidade com o banco
+  status: 'pending' | 'accepted' | 'expired';
   created_at: string;
   expires_at: string;
   invite_code: string;
@@ -167,12 +167,14 @@ export function useAcceptInvitationByCode() {
   });
 }
 
+// Hook modificado para funcionar sem autenticação
 export function useGetInvitationByCode(inviteCode?: string) {
   return useQuery({
     queryKey: ['invitation-by-code', inviteCode],
     queryFn: async () => {
       if (!inviteCode) return null;
       
+      // Esta query não precisa de autenticação para funcionar
       const { data, error } = await supabase
         .from('invitations')
         .select(`

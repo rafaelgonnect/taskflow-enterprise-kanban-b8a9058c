@@ -32,11 +32,12 @@ const InviteAccept = () => {
   const { data: invitation, isLoading } = useGetInvitationByCode(inviteCode);
   const acceptInvitation = useAcceptInvitationByCode();
 
+  // Preencher email automaticamente quando o convite for carregado
   useEffect(() => {
-    if (invitation && !email) {
+    if (invitation?.email) {
       setEmail(invitation.email);
     }
-  }, [invitation, email]);
+  }, [invitation]);
 
   // Se o usuário já está logado e o email confere, aceitar automaticamente
   useEffect(() => {
@@ -72,6 +73,16 @@ const InviteAccept = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invitation) return;
+
+    // Verificar se o email informado confere com o do convite
+    if (email !== invitation.email) {
+      toast({
+        title: 'Email inválido',
+        description: 'O email deve ser o mesmo do convite recebido.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -178,8 +189,13 @@ const InviteAccept = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    readOnly={!!invitation.email}
+                    readOnly
+                    className="bg-gray-50 cursor-not-allowed"
+                    title="Este email não pode ser alterado pois é o email do convite"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Email do convite (não pode ser alterado)
+                  </p>
                 </div>
                 
                 {!isLogin && (
