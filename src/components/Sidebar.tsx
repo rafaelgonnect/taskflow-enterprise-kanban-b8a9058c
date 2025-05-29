@@ -1,6 +1,7 @@
 
 import { Building2, Users, User, BarChart3, Kanban } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Company } from "@/types/database";
 
 interface SidebarProps {
   selectedView: string;
@@ -9,12 +10,8 @@ interface SidebarProps {
   setSelectedCompany: (companyId: string) => void;
   selectedDepartment: string;
   setSelectedDepartment: (departmentId: string) => void;
+  companies: Company[];
 }
-
-const mockCompanies = [
-  { id: "1", name: "TechCorp Solutions", departments: ["Desenvolvimento", "Marketing", "Vendas"] },
-  { id: "2", name: "Digital Agency", departments: ["Criação", "Atendimento", "Estratégia"] }
-];
 
 export const Sidebar = ({
   selectedView,
@@ -22,9 +19,10 @@ export const Sidebar = ({
   selectedCompany,
   setSelectedCompany,
   selectedDepartment,
-  setSelectedDepartment
+  setSelectedDepartment,
+  companies
 }: SidebarProps) => {
-  const currentCompany = mockCompanies.find(c => c.id === selectedCompany);
+  const currentCompany = companies.find(c => c.id === selectedCompany);
 
   return (
     <div className="w-80 bg-white border-r border-slate-200 shadow-sm">
@@ -87,7 +85,7 @@ export const Sidebar = ({
             }}
             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           >
-            {mockCompanies.map((company) => (
+            {companies.map((company) => (
               <option key={company.id} value={company.id}>
                 {company.name}
               </option>
@@ -104,11 +102,7 @@ export const Sidebar = ({
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="all">Todos os Departamentos</option>
-              {currentCompany.departments.map((dept) => (
-                <option key={dept} value={dept.toLowerCase()}>
-                  {dept}
-                </option>
-              ))}
+              {/* TODO: Carregar departamentos da empresa */}
             </select>
           </div>
         )}
