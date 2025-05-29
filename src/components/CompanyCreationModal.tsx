@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Building2, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CompanyCreationModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export function CompanyCreationModal({ isOpen, onClose }: CompanyCreationModalPr
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const createCompanyMutation = useCreateCompany();
+  const { user } = useAuth();
 
   const [companyData, setCompanyData] = useState({
     name: '',
@@ -31,21 +33,44 @@ export function CompanyCreationModal({ isOpen, onClose }: CompanyCreationModalPr
       return;
     }
 
+    if (!user) {
+      setError('Usuário não está logado');
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('Iniciando processo de criação da empresa...');
+      console.log('=== MODAL: Iniciando criação da empresa ===');
+      console.log('Usuário logado:', user.id, user.email);
+      console.log('Dados da empresa:', companyData);
+      
       await createCompanyMutation.mutateAsync({
         name: companyData.name.trim(),
         description: companyData.description.trim() || undefined,
       });
       
+      console.log('✅ MODAL: Empresa criada com sucesso!');
       toast.success('Empresa criada com sucesso! Bem-vindo ao TaskFlow SaaS!');
+      
+      // Limpar formulário
+      setCompanyData({ name: '', description: '' });
       onClose();
+      
     } catch (error: any) {
-      console.error('Erro completo na criação da empresa:', error);
-      const errorMessage = error.message || 'Erro desconhecido ao criar empresa';
+      console.error('❌ MODAL: Erro completo na criação da empresa:', error);
+      
+      let errorMessage = 'Erro desconhecido ao criar empresa';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      console.error('Mensagem de erro processada:', errorMessage);
+      
       setError(errorMessage);
       toast.error('Erro ao criar empresa: ' + errorMessage);
     } finally {
@@ -96,9 +121,17 @@ export function CompanyCreationModal({ isOpen, onClose }: CompanyCreationModalPr
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              <p>{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800 flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Erro ao criar empresa:</p>
+                <p>{error}</p>
+                {user && (
+                  <p className="text-xs mt-1 opacity-75">
+                    Usuário: {user.email} (ID: {user.id})
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
