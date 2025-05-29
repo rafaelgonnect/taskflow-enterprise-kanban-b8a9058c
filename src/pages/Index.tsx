@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useCompanies } from "@/hooks/useCompanies";
+import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Sidebar } from "@/components/Sidebar";
 import { TaskBoard } from "@/components/TaskBoard";
 import { Header } from "@/components/Header";
@@ -11,11 +11,10 @@ import { CompanyCreationModal } from "@/components/CompanyCreationModal";
 
 const Index = () => {
   const [selectedView, setSelectedView] = useState("dashboard");
-  const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const { user, loading } = useAuth();
-  const { data: companies, isLoading: companiesLoading } = useCompanies();
+  const { selectedCompany, companies, isLoading: companiesLoading } = useCompanyContext();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,12 +22,6 @@ const Index = () => {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
-
-  useEffect(() => {
-    if (companies && companies.length > 0 && !selectedCompany) {
-      setSelectedCompany(companies[0].id);
-    }
-  }, [companies, selectedCompany]);
 
   // Verificar se usuário não tem empresa e mostrar modal
   useEffect(() => {
@@ -55,25 +48,22 @@ const Index = () => {
           <Sidebar 
             selectedView={selectedView}
             setSelectedView={setSelectedView}
-            selectedCompany={selectedCompany}
-            setSelectedCompany={setSelectedCompany}
             selectedDepartment={selectedDepartment}
             setSelectedDepartment={setSelectedDepartment}
-            companies={companies || []}
           />
           <div className="flex-1 flex flex-col">
             <Header />
             <main className="flex-1 p-6">
               {selectedView === "dashboard" && <DashboardStats />}
-              {selectedView === "kanban" && (
+              {selectedView === "kanban" && selectedCompany && (
                 <TaskBoard 
-                  companyId={selectedCompany}
+                  companyId={selectedCompany.id}
                   departmentId={selectedDepartment}
                 />
               )}
-              {selectedView === "my-tasks" && (
+              {selectedView === "my-tasks" && selectedCompany && (
                 <TaskBoard 
-                  companyId={selectedCompany}
+                  companyId={selectedCompany.id}
                   departmentId="user"
                   userId="current"
                 />

@@ -1,28 +1,26 @@
 
-import { Building2, Users, User, BarChart3, Kanban } from "lucide-react";
+import { Building2, Users, User, BarChart3, Kanban, Settings, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Company } from "@/types/database";
+import { useCompanyContext } from "@/contexts/CompanyContext";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
 
 interface SidebarProps {
   selectedView: string;
   setSelectedView: (view: string) => void;
-  selectedCompany: string;
-  setSelectedCompany: (companyId: string) => void;
   selectedDepartment: string;
   setSelectedDepartment: (departmentId: string) => void;
-  companies: Company[];
 }
 
 export const Sidebar = ({
   selectedView,
   setSelectedView,
-  selectedCompany,
-  setSelectedCompany,
   selectedDepartment,
   setSelectedDepartment,
-  companies
 }: SidebarProps) => {
-  const currentCompany = companies.find(c => c.id === selectedCompany);
+  const { selectedCompany, companies, switchCompany } = useCompanyContext();
+  const navigate = useNavigate();
 
   return (
     <div className="w-80 bg-white border-r border-slate-200 shadow-sm">
@@ -34,6 +32,52 @@ export const Sidebar = ({
       </div>
 
       <div className="p-4">
+        {/* Seletor de Empresa */}
+        <div className="mb-6">
+          <label className="text-sm font-medium text-slate-700 mb-2 block">Empresa Ativa</label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between"
+                disabled={companies.length === 0}
+              >
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  <span className="truncate">
+                    {selectedCompany?.name || 'Selecione uma empresa'}
+                  </span>
+                </div>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-72">
+              <DropdownMenuLabel>Suas Empresas</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {companies.map((company) => (
+                <DropdownMenuItem
+                  key={company.id}
+                  onClick={() => switchCompany(company.id)}
+                  className="flex items-center justify-between cursor-pointer"
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium">{company.name}</span>
+                    {company.description && (
+                      <span className="text-xs text-slate-500 truncate">
+                        {company.description}
+                      </span>
+                    )}
+                  </div>
+                  {selectedCompany?.id === company.id && (
+                    <Check className="h-4 w-4 text-blue-600" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Menu de Navegação */}
         <div className="space-y-2 mb-6">
           <button
             onClick={() => setSelectedView("dashboard")}
@@ -73,27 +117,18 @@ export const Sidebar = ({
             <User size={20} />
             Minhas Tarefas
           </button>
-        </div>
 
-        <div className="mb-4">
-          <label className="text-sm font-medium text-slate-700 mb-2 block">Empresa</label>
-          <select
-            value={selectedCompany}
-            onChange={(e) => {
-              setSelectedCompany(e.target.value);
-              setSelectedDepartment("all");
-            }}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          <button
+            onClick={() => navigate('/company-settings')}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
           >
-            {companies.map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
-          </select>
+            <Settings size={20} />
+            Configurações
+          </button>
         </div>
 
-        {currentCompany && (
+        {/* Filtro por Departamento */}
+        {selectedCompany && (
           <div>
             <label className="text-sm font-medium text-slate-700 mb-2 block">Departamento</label>
             <select
@@ -104,6 +139,20 @@ export const Sidebar = ({
               <option value="all">Todos os Departamentos</option>
               {/* TODO: Carregar departamentos da empresa */}
             </select>
+          </div>
+        )}
+
+        {/* Informações da Empresa */}
+        {selectedCompany && (
+          <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+            <h3 className="text-sm font-medium text-slate-700 mb-2">Empresa Atual</h3>
+            <p className="text-sm text-slate-900 font-medium">{selectedCompany.name}</p>
+            {selectedCompany.description && (
+              <p className="text-xs text-slate-600 mt-1">{selectedCompany.description}</p>
+            )}
+            <p className="text-xs text-slate-500 mt-2">
+              Criada em {new Date(selectedCompany.created_at).toLocaleDateString('pt-BR')}
+            </p>
           </div>
         )}
       </div>
