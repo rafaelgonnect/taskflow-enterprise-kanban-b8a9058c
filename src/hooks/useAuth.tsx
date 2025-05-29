@@ -24,12 +24,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      console.log('Tentando buscar perfil para usuário:', userId);
+      console.log('Buscando perfil para usuário:', userId);
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle(); // Usar maybeSingle ao invés de single para evitar erro quando não há dados
+        .maybeSingle();
       
       if (error) {
         console.error('Erro ao buscar perfil:', error);
@@ -37,10 +37,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } 
 
       if (profileData) {
-        console.log('Perfil carregado:', profileData);
+        console.log('Perfil carregado com sucesso:', profileData);
         return profileData;
       } else {
-        console.log('Nenhum perfil encontrado, pode ser um usuário novo');
+        console.log('Nenhum perfil encontrado');
         return null;
       }
     } catch (err) {
@@ -50,42 +50,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Configurar listener de mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Buscar perfil do usuário
-          const profileData = await fetchProfile(session.user.id);
-          setProfile(profileData);
-        } else {
-          setProfile(null);
-        }
-        
-        setLoading(false);
-      }
-    );
+    let isMounted = true;
 
-    // Verificar sessão existente
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('Sessão existente:', session?.user?.email);
+    // Função para processar mudanças de auth
+    const handleAuthChange = async (event: string, session: Session | null) => {
+      if (!isMounted) return;
+
+      console.log('Auth state change:', event, session?.user?.email);
+      
       setSession(session);
       setUser(session?.user ?? null);
       
-      if (session?.user) {
-        // Buscar perfil se já tiver usuário logado
-        const profileData = await fetchProfile(session.user.id);
-        setProfile(profileData);
+      if (session?.user && isMounted) {
+        // Usar setTimeout para evitar conflitos
+        setTimeout(async () => {
+          if (isMounted) {
+            const profileData = await fetchProfile(session.user.id);
+            if (isMounted) {
+              setProfile(profileData);
+              setLoading(false);
+            }
+          }
+        }, 0);
+      } else {
+        setProfile(null);
+        setLoading(false);
       }
-      
-      setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    // Configurar listener de mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+
+    // Verificar sessão existente
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Erro ao obter sessão:', error);
+          setLoading(false);
+          return;
+        }
+
+        if (session && isMounted) {
+          console.log('Sessão existente encontrada:', session.user?.email);
+          setSession(session);
+          setUser(session.user);
+          
+          const profileData = await fetchProfile(session.user.id);
+          if (isMounted) {
+            setProfile(profileData);
+          }
+        }
+        
+        if (isMounted) {
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Erro na inicialização da auth:', err);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {

@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { TaskBoard } from "@/components/TaskBoard";
 import { Header } from "@/components/Header";
 import { DashboardStats } from "@/components/DashboardStats";
+import { UserManagement } from "@/components/UserManagement";
 import { CompanyCreationModal } from "@/components/CompanyCreationModal";
 
 const Index = () => {
@@ -68,6 +69,7 @@ const Index = () => {
                   userId="current"
                 />
               )}
+              {selectedView === "users" && <UserManagement />}
             </main>
           </div>
         </div>

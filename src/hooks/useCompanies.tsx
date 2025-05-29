@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Company } from '@/types/database';
@@ -17,26 +16,33 @@ export function useCompanies() {
       
       console.log('Buscando empresas para usuário:', user.id);
       
-      const { data, error } = await supabase
-        .from('user_companies')
-        .select(`
-          *,
-          companies (*)
-        `)
-        .eq('user_id', user.id)
-        .eq('is_active', true);
-      
-      if (error) {
-        console.error('Erro ao buscar empresas:', error);
-        throw error;
+      try {
+        const { data, error } = await supabase
+          .from('user_companies')
+          .select(`
+            *,
+            companies (*)
+          `)
+          .eq('user_id', user.id)
+          .eq('is_active', true);
+        
+        if (error) {
+          console.error('Erro ao buscar empresas:', error);
+          return [];
+        }
+        
+        const companies = data?.map((uc: any) => uc.companies).filter(Boolean) || [];
+        console.log('Empresas carregadas com sucesso:', companies.length);
+        
+        return companies;
+      } catch (err) {
+        console.error('Erro inesperado ao buscar empresas:', err);
+        return [];
       }
-      
-      const companies = data?.map((uc: any) => uc.companies).filter(Boolean) || [];
-      console.log('Empresas encontradas:', companies.length);
-      
-      return companies;
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    retry: 3,
   });
 }
 

@@ -1,5 +1,5 @@
 
-import { Building2, Users, User, BarChart3, Kanban, Settings, ChevronDown, Check } from "lucide-react";
+import { Building2, Users, User, BarChart3, Kanban, Settings, ChevronDown, Check, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanyContext } from "@/contexts/CompanyContext";
 import { Button } from "@/components/ui/button";
@@ -116,6 +116,19 @@ export const Sidebar = ({
           >
             <User size={20} />
             Minhas Tarefas
+          </button>
+
+          <button
+            onClick={() => setSelectedView("users")}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200",
+              selectedView === "users" 
+                ? "bg-blue-50 text-blue-700 border border-blue-200" 
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            )}
+          >
+            <UserCog size={20} />
+            Gestão de Usuários
           </button>
 
           <button
