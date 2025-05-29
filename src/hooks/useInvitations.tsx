@@ -203,8 +203,10 @@ export function useGetInvitationByCode(inviteCode?: string) {
         return null;
       }
       
-      // Type assertion para converter o Json retornado para o tipo esperado
-      return data as PublicInvitationResult;
+      if (!data) return null;
+      
+      // Type assertion segura para converter o Json retornado para o tipo esperado
+      return data as unknown as PublicInvitationResult;
     },
     enabled: !!inviteCode,
   });

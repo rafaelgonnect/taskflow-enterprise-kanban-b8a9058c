@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Company } from '@/types/database';
@@ -159,6 +160,9 @@ export function useCreateCompany() {
           console.log('✅ Papéis padrão criados');
         }
         
+        // Esperar um momento para garantir que os papéis foram criados
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // Buscar e atribuir papel de Admin
         console.log('5. Buscando papel de Admin...');
         const { data: adminRole, error: adminRoleError } = await supabase
@@ -190,6 +194,8 @@ export function useCreateCompany() {
           } else {
             console.log('✅ Papel de admin atribuído');
           }
+        } else {
+          console.warn('Papel de Admin não foi encontrado na empresa criada');
         }
         
         // Atualizar tipo do usuário para company_owner
@@ -227,6 +233,11 @@ export function useCreateCompany() {
     onSuccess: (company) => {
       console.log('✅ Mutação bem-sucedida, invalidando queries...');
       queryClient.invalidateQueries({ queryKey: ['companies'] });
+      
+      // Aguardar um momento antes de tentar recarregar
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['companies'] });
+      }, 2000);
     },
     onError: (error: any) => {
       console.error('❌ Erro na mutação de criação de empresa:', error);
