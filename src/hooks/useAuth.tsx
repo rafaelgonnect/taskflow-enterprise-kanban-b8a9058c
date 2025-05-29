@@ -26,20 +26,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Buscar perfil do usuário
+          // Buscar perfil do usuário com um pequeno delay para garantir que foi criado
           setTimeout(async () => {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            setProfile(profileData);
-          }, 0);
+            try {
+              const { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (error) {
+                console.error('Erro ao buscar perfil:', error);
+              } else {
+                console.log('Perfil carregado:', profileData);
+                setProfile(profileData);
+              }
+            } catch (err) {
+              console.error('Erro inesperado ao buscar perfil:', err);
+            }
+          }, 100);
         } else {
           setProfile(null);
         }
@@ -50,8 +61,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Verificar sessão existente
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Sessão existente:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Buscar perfil se já tiver usuário logado
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data, error }) => {
+            if (!error && data) {
+              setProfile(data);
+            }
+          });
+      }
+      
       setLoading(false);
     });
 
@@ -59,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    console.log('Tentando cadastrar usuário:', email);
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -69,20 +97,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
     
+    if (error) {
+      console.error('Erro no cadastro:', error);
+    } else {
+      console.log('Cadastro realizado com sucesso');
+    }
+    
     return { error };
   };
 
   const signIn = async (email: string, password: string) => {
+    console.log('Tentando fazer login:', email);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
+    if (error) {
+      console.error('Erro no login:', error);
+    } else {
+      console.log('Login realizado com sucesso');
+    }
+    
     return { error };
   };
 
   const signOut = async () => {
+    console.log('Fazendo logout');
     await supabase.auth.signOut();
+    setProfile(null);
   };
 
   return (

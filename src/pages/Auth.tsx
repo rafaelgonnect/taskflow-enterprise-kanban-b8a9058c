@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateCompany } from '@/hooks/useCompanies';
@@ -8,12 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, User, Mail, Lock } from 'lucide-react';
+import { Building2, User, Mail, Lock, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
   const [showCompanyForm, setShowCompanyForm] = useState(false);
+  const [signupCompleted, setSignupCompleted] = useState(false);
   const navigate = useNavigate();
   const { signUp, signIn, user } = useAuth();
   const createCompanyMutation = useCreateCompany();
@@ -37,6 +38,15 @@ export default function Auth() {
     name: '',
     description: '',
   });
+
+  // Verificar se usuário já tem empresa
+  useEffect(() => {
+    if (user && !showCompanyForm && !signupCompleted) {
+      // Se o usuário está logado e não estamos mostrando o form de empresa,
+      // mostrar o form de empresa
+      setShowCompanyForm(true);
+    }
+  }, [user, showCompanyForm, signupCompleted]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +77,11 @@ export default function Auth() {
       return;
     }
 
+    if (signupData.password.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -78,6 +93,7 @@ export default function Auth() {
       }
       
       toast.success('Conta criada com sucesso!');
+      setSignupCompleted(true);
       setShowCompanyForm(true);
     } catch (error: any) {
       toast.error('Erro inesperado: ' + error.message);
@@ -88,41 +104,58 @@ export default function Auth() {
 
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!companyData.name.trim()) {
+      toast.error('Nome da empresa é obrigatório');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       await createCompanyMutation.mutateAsync({
-        name: companyData.name,
-        description: companyData.description,
+        name: companyData.name.trim(),
+        description: companyData.description.trim() || undefined,
       });
       
-      toast.success('Empresa criada com sucesso!');
+      toast.success('Empresa criada com sucesso! Bem-vindo ao TaskFlow SaaS!');
       navigate('/');
     } catch (error: any) {
       toast.error('Erro ao criar empresa: ' + error.message);
+      console.error('Erro completo:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Se usuário logado mas precisa criar empresa
+  // Se usuário logado e precisa criar empresa
   if (user && showCompanyForm) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <Building2 className="h-12 w-12 text-blue-600" />
+              <div className="relative">
+                <Building2 className="h-12 w-12 text-blue-600" />
+                {signupCompleted && (
+                  <CheckCircle className="h-6 w-6 text-green-500 absolute -top-1 -right-1 bg-white rounded-full" />
+                )}
+              </div>
             </div>
-            <CardTitle className="text-2xl">Criar Empresa</CardTitle>
+            <CardTitle className="text-2xl">
+              {signupCompleted ? 'Parabéns!' : 'Quase Lá!'}
+            </CardTitle>
             <CardDescription>
-              Para continuar, você precisa criar uma empresa
+              {signupCompleted 
+                ? 'Agora vamos criar sua empresa para começar a usar o TaskFlow SaaS'
+                : 'Para continuar, você precisa criar uma empresa'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCreateCompany} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="companyName">Nome da Empresa</Label>
+                <Label htmlFor="companyName">Nome da Empresa *</Label>
                 <Input
                   id="companyName"
                   type="text"
@@ -130,22 +163,29 @@ export default function Auth() {
                   value={companyData.name}
                   onChange={(e) => setCompanyData({ ...companyData, name: e.target.value })}
                   required
+                  disabled={isLoading}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="companyDescription">Descrição (opcional)</Label>
+                <Label htmlFor="companyDescription">Descrição da Empresa (opcional)</Label>
                 <Input
                   id="companyDescription"
                   type="text"
-                  placeholder="Breve descrição da empresa"
+                  placeholder="Breve descrição da sua empresa"
                   value={companyData.description}
                   onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })}
+                  disabled={isLoading}
                 />
               </div>
 
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+                <p className="font-medium mb-1">💡 Dica:</p>
+                <p>Após criar sua empresa, você se tornará o administrador e poderá convidar outros usuários para colaborar!</p>
+              </div>
+
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Criando...' : 'Criar Empresa'}
+                {isLoading ? 'Criando empresa...' : 'Criar Empresa e Continuar'}
               </Button>
             </form>
           </CardContent>
@@ -187,6 +227,7 @@ export default function Auth() {
                       value={loginData.email}
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -203,6 +244,7 @@ export default function Auth() {
                       value={loginData.password}
                       onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -227,6 +269,7 @@ export default function Auth() {
                       value={signupData.fullName}
                       onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -243,6 +286,7 @@ export default function Auth() {
                       value={signupData.email}
                       onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -254,11 +298,13 @@ export default function Auth() {
                     <Input
                       id="signupPassword"
                       type="password"
-                      placeholder="Crie uma senha"
+                      placeholder="Crie uma senha (mín. 6 caracteres)"
                       className="pl-10"
                       value={signupData.password}
                       onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                       required
+                      disabled={isLoading}
+                      minLength={6}
                     />
                   </div>
                 </div>
@@ -275,17 +321,20 @@ export default function Auth() {
                       value={signupData.confirmPassword}
                       onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
                       required
+                      disabled={isLoading}
+                      minLength={6}
                     />
                   </div>
                 </div>
 
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                  <p className="font-medium mb-1">📋 Próximo passo:</p>
+                  <p>Após o cadastro, você criará sua empresa e se tornará o administrador dela.</p>
+                </div>
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Criando conta...' : 'Criar conta e empresa'}
+                  {isLoading ? 'Criando conta...' : 'Criar Conta'}
                 </Button>
-                
-                <p className="text-xs text-muted-foreground text-center">
-                  Ao se cadastrar, você criará automaticamente uma empresa
-                </p>
               </form>
             </TabsContent>
           </Tabs>
