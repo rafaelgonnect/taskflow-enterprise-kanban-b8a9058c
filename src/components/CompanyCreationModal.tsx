@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Building2, CheckCircle, Loader2 } from 'lucide-react';
+import { Building2, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CompanyCreationModalProps {
@@ -15,6 +15,7 @@ interface CompanyCreationModalProps {
 
 export function CompanyCreationModal({ isOpen, onClose }: CompanyCreationModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const createCompanyMutation = useCreateCompany();
 
   const [companyData, setCompanyData] = useState({
@@ -26,13 +27,15 @@ export function CompanyCreationModal({ isOpen, onClose }: CompanyCreationModalPr
     e.preventDefault();
     
     if (!companyData.name.trim()) {
-      toast.error('Nome da empresa é obrigatório');
+      setError('Nome da empresa é obrigatório');
       return;
     }
 
     setIsLoading(true);
+    setError(null);
 
     try {
+      console.log('Iniciando processo de criação da empresa...');
       await createCompanyMutation.mutateAsync({
         name: companyData.name.trim(),
         description: companyData.description.trim() || undefined,
@@ -41,8 +44,10 @@ export function CompanyCreationModal({ isOpen, onClose }: CompanyCreationModalPr
       toast.success('Empresa criada com sucesso! Bem-vindo ao TaskFlow SaaS!');
       onClose();
     } catch (error: any) {
-      toast.error('Erro ao criar empresa: ' + error.message);
-      console.error('Erro completo:', error);
+      console.error('Erro completo na criação da empresa:', error);
+      const errorMessage = error.message || 'Erro desconhecido ao criar empresa';
+      setError(errorMessage);
+      toast.error('Erro ao criar empresa: ' + errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -89,6 +94,13 @@ export function CompanyCreationModal({ isOpen, onClose }: CompanyCreationModalPr
               disabled={isLoading}
             />
           </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              <p>{error}</p>
+            </div>
+          )}
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
             <p className="font-medium mb-1">🎉 O que acontece a seguir:</p>

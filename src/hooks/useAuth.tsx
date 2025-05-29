@@ -22,6 +22,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchProfile = async (userId: string) => {
+    try {
+      console.log('Tentando buscar perfil para usuário:', userId);
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle(); // Usar maybeSingle ao invés de single para evitar erro quando não há dados
+      
+      if (error) {
+        console.error('Erro ao buscar perfil:', error);
+        return null;
+      } 
+
+      if (profileData) {
+        console.log('Perfil carregado:', profileData);
+        return profileData;
+      } else {
+        console.log('Nenhum perfil encontrado, pode ser um usuário novo');
+        return null;
+      }
+    } catch (err) {
+      console.error('Erro inesperado ao buscar perfil:', err);
+      return null;
+    }
+  };
+
   useEffect(() => {
     // Configurar listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -32,25 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Buscar perfil do usuário com um pequeno delay para garantir que foi criado
-          setTimeout(async () => {
-            try {
-              const { data: profileData, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (error) {
-                console.error('Erro ao buscar perfil:', error);
-              } else {
-                console.log('Perfil carregado:', profileData);
-                setProfile(profileData);
-              }
-            } catch (err) {
-              console.error('Erro inesperado ao buscar perfil:', err);
-            }
-          }, 100);
+          // Buscar perfil do usuário
+          const profileData = await fetchProfile(session.user.id);
+          setProfile(profileData);
         } else {
           setProfile(null);
         }
@@ -60,23 +71,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // Verificar sessão existente
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('Sessão existente:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
         // Buscar perfil se já tiver usuário logado
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data, error }) => {
-            if (!error && data) {
-              setProfile(data);
-            }
-          });
+        const profileData = await fetchProfile(session.user.id);
+        setProfile(profileData);
       }
       
       setLoading(false);
@@ -87,6 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, fullName: string) => {
     console.log('Tentando cadastrar usuário:', email);
+    setLoading(true);
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -103,11 +108,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Cadastro realizado com sucesso');
     }
     
+    setLoading(false);
     return { error };
   };
 
   const signIn = async (email: string, password: string) => {
     console.log('Tentando fazer login:', email);
+    setLoading(true);
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -119,13 +127,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Login realizado com sucesso');
     }
     
+    setLoading(false);
     return { error };
   };
 
   const signOut = async () => {
     console.log('Fazendo logout');
+    setLoading(true);
     await supabase.auth.signOut();
     setProfile(null);
+    setLoading(false);
   };
 
   return (

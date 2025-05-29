@@ -50,97 +50,143 @@ export function useCreateCompany() {
         throw new Error('Usuário não autenticado');
       }
       
-      console.log('Criando empresa:', { name, description, owner_id: user.id });
+      console.log('Iniciando criação de empresa:', { name, description, owner_id: user.id });
       
-      // Criar a empresa
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert({
-          name,
-          description,
-          owner_id: user.id,
-        })
-        .select()
-        .single();
-      
-      if (companyError) {
-        console.error('Erro ao criar empresa:', companyError);
-        throw companyError;
-      }
-      
-      console.log('Empresa criada:', company);
-      
-      // Criar relacionamento usuário-empresa
-      const { error: userCompanyError } = await supabase
-        .from('user_companies')
-        .insert({
-          user_id: user.id,
-          company_id: company.id,
-        });
-      
-      if (userCompanyError) {
-        console.error('Erro ao criar relacionamento usuário-empresa:', userCompanyError);
-        throw userCompanyError;
-      }
-      
-      console.log('Relacionamento usuário-empresa criado');
-      
-      // Criar papéis padrão para a empresa
-      const { error: rolesError } = await supabase.rpc('create_default_roles', {
-        _company_id: company.id
-      });
-      
-      if (rolesError) {
-        console.error('Erro ao criar papéis padrão:', rolesError);
-        throw rolesError;
-      }
-      
-      console.log('Papéis padrão criados');
-      
-      // Atribuir papel de Admin ao criador da empresa
-      const { data: adminRole, error: adminRoleError } = await supabase
-        .from('roles')
-        .select('id')
-        .eq('company_id', company.id)
-        .eq('name', 'Admin')
-        .single();
-      
-      if (adminRoleError) {
-        console.error('Erro ao buscar papel de admin:', adminRoleError);
-        throw adminRoleError;
-      }
-      
-      if (adminRole) {
-        const { error: userRoleError } = await supabase
-          .from('user_roles')
+      try {
+        // Primeiro, verificar se o perfil do usuário existe
+        const { data: existingProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (profileError) {
+          console.error('Erro ao verificar perfil:', profileError);
+          throw new Error('Erro ao verificar perfil do usuário');
+        }
+        
+        if (!existingProfile) {
+          console.log('Perfil não encontrado, criando perfil primeiro...');
+          const { error: createProfileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || 'Usuário',
+              user_type: 'company_owner'
+            });
+          
+          if (createProfileError) {
+            console.error('Erro ao criar perfil:', createProfileError);
+            throw new Error('Erro ao criar perfil do usuário');
+          }
+          
+          console.log('Perfil criado com sucesso');
+        }
+        
+        // Criar a empresa
+        console.log('Criando empresa...');
+        const { data: company, error: companyError } = await supabase
+          .from('companies')
+          .insert({
+            name,
+            description,
+            owner_id: user.id,
+          })
+          .select()
+          .single();
+        
+        if (companyError) {
+          console.error('Erro ao criar empresa:', companyError);
+          throw companyError;
+        }
+        
+        console.log('Empresa criada:', company);
+        
+        // Criar relacionamento usuário-empresa
+        console.log('Criando relacionamento usuário-empresa...');
+        const { error: userCompanyError } = await supabase
+          .from('user_companies')
           .insert({
             user_id: user.id,
             company_id: company.id,
-            role_id: adminRole.id,
           });
         
-        if (userRoleError) {
-          console.error('Erro ao atribuir papel de admin:', userRoleError);
-          throw userRoleError;
+        if (userCompanyError) {
+          console.error('Erro ao criar relacionamento usuário-empresa:', userCompanyError);
+          throw userCompanyError;
         }
         
-        console.log('Papel de admin atribuído');
+        console.log('Relacionamento usuário-empresa criado');
+        
+        // Criar papéis padrão para a empresa
+        console.log('Criando papéis padrão...');
+        const { error: rolesError } = await supabase.rpc('create_default_roles', {
+          _company_id: company.id
+        });
+        
+        if (rolesError) {
+          console.error('Erro ao criar papéis padrão:', rolesError);
+          throw rolesError;
+        }
+        
+        console.log('Papéis padrão criados');
+        
+        // Atribuir papel de Admin ao criador da empresa
+        console.log('Buscando papel de Admin...');
+        const { data: adminRole, error: adminRoleError } = await supabase
+          .from('roles')
+          .select('id')
+          .eq('company_id', company.id)
+          .eq('name', 'Admin')
+          .single();
+        
+        if (adminRoleError) {
+          console.error('Erro ao buscar papel de admin:', adminRoleError);
+          throw adminRoleError;
+        }
+        
+        if (adminRole) {
+          console.log('Atribuindo papel de Admin...');
+          const { error: userRoleError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: user.id,
+              company_id: company.id,
+              role_id: adminRole.id,
+            });
+          
+          if (userRoleError) {
+            console.error('Erro ao atribuir papel de admin:', userRoleError);
+            throw userRoleError;
+          }
+          
+          console.log('Papel de admin atribuído');
+        }
+        
+        // Atualizar tipo do usuário para company_owner se necessário
+        if (!existingProfile || existingProfile.user_type !== 'company_owner') {
+          console.log('Atualizando tipo do usuário...');
+          const { error: profileUpdateError } = await supabase
+            .from('profiles')
+            .update({ user_type: 'company_owner' })
+            .eq('id', user.id);
+          
+          if (profileUpdateError) {
+            console.error('Erro ao atualizar tipo do usuário:', profileUpdateError);
+            // Não fazer throw aqui, pois não é crítico
+          } else {
+            console.log('Tipo do usuário atualizado para company_owner');
+          }
+        }
+        
+        console.log('Empresa criada com sucesso!');
+        return company;
+        
+      } catch (error) {
+        console.error('Erro durante criação da empresa:', error);
+        throw error;
       }
-      
-      // Atualizar tipo do usuário para company_owner
-      const { error: profileUpdateError } = await supabase
-        .from('profiles')
-        .update({ user_type: 'company_owner' })
-        .eq('id', user.id);
-      
-      if (profileUpdateError) {
-        console.error('Erro ao atualizar tipo do usuário:', profileUpdateError);
-        // Não fazer throw aqui, pois não é crítico
-      } else {
-        console.log('Tipo do usuário atualizado para company_owner');
-      }
-      
-      return company;
     },
     onSuccess: () => {
       console.log('Empresa criada com sucesso, invalidating queries');
