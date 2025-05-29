@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -19,6 +20,24 @@ export interface Invitation {
   };
   invited_by_profile?: {
     full_name: string;
+  };
+}
+
+// Interface para o resultado da função RPC de busca pública
+interface PublicInvitationResult {
+  id: string;
+  email: string;
+  company_id: string;
+  invited_by: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+  invite_code: string;
+  whatsapp_link: string | null;
+  accepted_at: string | null;
+  companies: {
+    name: string;
+    description?: string;
   };
 }
 
@@ -171,7 +190,7 @@ export function useAcceptInvitationByCode() {
 export function useGetInvitationByCode(inviteCode?: string) {
   return useQuery({
     queryKey: ['invitation-by-code', inviteCode],
-    queryFn: async () => {
+    queryFn: async (): Promise<PublicInvitationResult | null> => {
       if (!inviteCode) return null;
       
       // Busca pública do convite usando a função RPC que não requer autenticação
@@ -184,7 +203,8 @@ export function useGetInvitationByCode(inviteCode?: string) {
         return null;
       }
       
-      return data;
+      // Type assertion para converter o Json retornado para o tipo esperado
+      return data as PublicInvitationResult;
     },
     enabled: !!inviteCode,
   });

@@ -468,6 +468,10 @@ export type Database = {
         Args: { invite_code: string; company_name: string }
         Returns: string
       }
+      get_invitation_by_code: {
+        Args: { invite_code: string }
+        Returns: Json
+      }
       user_has_permission: {
         Args: {
           _user_id: string
