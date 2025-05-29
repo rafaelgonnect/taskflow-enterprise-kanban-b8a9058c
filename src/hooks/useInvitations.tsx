@@ -151,8 +151,8 @@ export function useAcceptInvitationByCode() {
       
       if (error) throw error;
       
-      // Type assertion para o resultado da função RPC
-      const result = data as AcceptInvitationResult;
+      // Conversão segura do tipo Json para AcceptInvitationResult
+      const result = data as unknown as AcceptInvitationResult;
       
       if (!result.success) {
         throw new Error(result.error || 'Erro desconhecido');
