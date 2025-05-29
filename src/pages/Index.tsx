@@ -7,11 +7,13 @@ import { Sidebar } from "@/components/Sidebar";
 import { TaskBoard } from "@/components/TaskBoard";
 import { Header } from "@/components/Header";
 import { DashboardStats } from "@/components/DashboardStats";
+import { CompanyCreationModal } from "@/components/CompanyCreationModal";
 
 const Index = () => {
   const [selectedView, setSelectedView] = useState("dashboard");
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
   const { user, loading } = useAuth();
   const { data: companies, isLoading: companiesLoading } = useCompanies();
   const navigate = useNavigate();
@@ -28,6 +30,13 @@ const Index = () => {
     }
   }, [companies, selectedCompany]);
 
+  // Verificar se usuário não tem empresa e mostrar modal
+  useEffect(() => {
+    if (!companiesLoading && companies && companies.length === 0 && user) {
+      setShowCompanyModal(true);
+    }
+  }, [companiesLoading, companies, user]);
+
   if (loading || companiesLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
@@ -39,49 +48,46 @@ const Index = () => {
     );
   }
 
-  if (!companies || companies.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-slate-600">Nenhuma empresa encontrada. Redirecionando...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="flex">
-        <Sidebar 
-          selectedView={selectedView}
-          setSelectedView={setSelectedView}
-          selectedCompany={selectedCompany}
-          setSelectedCompany={setSelectedCompany}
-          selectedDepartment={selectedDepartment}
-          setSelectedDepartment={setSelectedDepartment}
-          companies={companies}
-        />
-        <div className="flex-1 flex flex-col">
-          <Header />
-          <main className="flex-1 p-6">
-            {selectedView === "dashboard" && <DashboardStats />}
-            {selectedView === "kanban" && (
-              <TaskBoard 
-                companyId={selectedCompany}
-                departmentId={selectedDepartment}
-              />
-            )}
-            {selectedView === "my-tasks" && (
-              <TaskBoard 
-                companyId={selectedCompany}
-                departmentId="user"
-                userId="current"
-              />
-            )}
-          </main>
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="flex">
+          <Sidebar 
+            selectedView={selectedView}
+            setSelectedView={setSelectedView}
+            selectedCompany={selectedCompany}
+            setSelectedCompany={setSelectedCompany}
+            selectedDepartment={selectedDepartment}
+            setSelectedDepartment={setSelectedDepartment}
+            companies={companies || []}
+          />
+          <div className="flex-1 flex flex-col">
+            <Header />
+            <main className="flex-1 p-6">
+              {selectedView === "dashboard" && <DashboardStats />}
+              {selectedView === "kanban" && (
+                <TaskBoard 
+                  companyId={selectedCompany}
+                  departmentId={selectedDepartment}
+                />
+              )}
+              {selectedView === "my-tasks" && (
+                <TaskBoard 
+                  companyId={selectedCompany}
+                  departmentId="user"
+                  userId="current"
+                />
+              )}
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+
+      <CompanyCreationModal 
+        isOpen={showCompanyModal}
+        onClose={() => setShowCompanyModal(false)}
+      />
+    </>
   );
 };
 

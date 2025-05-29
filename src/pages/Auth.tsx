@@ -2,22 +2,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useCreateCompany } from '@/hooks/useCompanies';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, User, Mail, Lock, CheckCircle } from 'lucide-react';
+import { Building2, User, Mail, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Auth() {
   const [isLoading, setIsLoading] = useState(false);
-  const [showCompanyForm, setShowCompanyForm] = useState(false);
-  const [signupCompleted, setSignupCompleted] = useState(false);
   const navigate = useNavigate();
   const { signUp, signIn, user } = useAuth();
-  const createCompanyMutation = useCreateCompany();
 
   // Formulário de login
   const [loginData, setLoginData] = useState({
@@ -33,20 +29,12 @@ export default function Auth() {
     confirmPassword: '',
   });
 
-  // Formulário de empresa
-  const [companyData, setCompanyData] = useState({
-    name: '',
-    description: '',
-  });
-
-  // Verificar se usuário já tem empresa
+  // Redirecionar usuário logado
   useEffect(() => {
-    if (user && !showCompanyForm && !signupCompleted) {
-      // Se o usuário está logado e não estamos mostrando o form de empresa,
-      // mostrar o form de empresa
-      setShowCompanyForm(true);
+    if (user) {
+      navigate('/');
     }
-  }, [user, showCompanyForm, signupCompleted]);
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +49,6 @@ export default function Auth() {
       }
       
       toast.success('Login realizado com sucesso!');
-      navigate('/');
     } catch (error: any) {
       toast.error('Erro inesperado: ' + error.message);
     } finally {
@@ -93,106 +80,12 @@ export default function Auth() {
       }
       
       toast.success('Conta criada com sucesso!');
-      setSignupCompleted(true);
-      setShowCompanyForm(true);
     } catch (error: any) {
       toast.error('Erro inesperado: ' + error.message);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleCreateCompany = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!companyData.name.trim()) {
-      toast.error('Nome da empresa é obrigatório');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      await createCompanyMutation.mutateAsync({
-        name: companyData.name.trim(),
-        description: companyData.description.trim() || undefined,
-      });
-      
-      toast.success('Empresa criada com sucesso! Bem-vindo ao TaskFlow SaaS!');
-      navigate('/');
-    } catch (error: any) {
-      toast.error('Erro ao criar empresa: ' + error.message);
-      console.error('Erro completo:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Se usuário logado e precisa criar empresa
-  if (user && showCompanyForm) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="relative">
-                <Building2 className="h-12 w-12 text-blue-600" />
-                {signupCompleted && (
-                  <CheckCircle className="h-6 w-6 text-green-500 absolute -top-1 -right-1 bg-white rounded-full" />
-                )}
-              </div>
-            </div>
-            <CardTitle className="text-2xl">
-              {signupCompleted ? 'Parabéns!' : 'Quase Lá!'}
-            </CardTitle>
-            <CardDescription>
-              {signupCompleted 
-                ? 'Agora vamos criar sua empresa para começar a usar o TaskFlow SaaS'
-                : 'Para continuar, você precisa criar uma empresa'
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreateCompany} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="companyName">Nome da Empresa *</Label>
-                <Input
-                  id="companyName"
-                  type="text"
-                  placeholder="Ex: Minha Empresa Ltda"
-                  value={companyData.name}
-                  onChange={(e) => setCompanyData({ ...companyData, name: e.target.value })}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="companyDescription">Descrição da Empresa (opcional)</Label>
-                <Input
-                  id="companyDescription"
-                  type="text"
-                  placeholder="Breve descrição da sua empresa"
-                  value={companyData.description}
-                  onChange={(e) => setCompanyData({ ...companyData, description: e.target.value })}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-                <p className="font-medium mb-1">💡 Dica:</p>
-                <p>Após criar sua empresa, você se tornará o administrador e poderá convidar outros usuários para colaborar!</p>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Criando empresa...' : 'Criar Empresa e Continuar'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
@@ -329,7 +222,7 @@ export default function Auth() {
 
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
                   <p className="font-medium mb-1">📋 Próximo passo:</p>
-                  <p>Após o cadastro, você criará sua empresa e se tornará o administrador dela.</p>
+                  <p>Após o cadastro, você será direcionado para criar sua empresa e se tornará o administrador dela.</p>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
