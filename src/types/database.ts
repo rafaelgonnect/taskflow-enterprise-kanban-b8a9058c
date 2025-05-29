@@ -43,7 +43,7 @@ export interface Role {
   created_at: string;
 }
 
-export interface Permission {
+export type Permission = 
   'manage_company' |
   'manage_users' | 
   'manage_departments' |
@@ -55,7 +55,6 @@ export interface Permission {
   'assign_tasks' |
   'view_reports' |
   'manage_permissions';
-}
 
 export interface UserRole {
   id: string;
