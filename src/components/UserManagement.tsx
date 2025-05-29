@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
-import { useInvitations, useCreateInvitation } from '@/hooks/useInvitations';
+import { useInvitations, useCreateInvitation, Invitation } from '@/hooks/useInvitations';
 import { useCompanyUsers, useUpdateUserRole, useToggleUserStatus } from '@/hooks/useCompanyUsers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Users, UserPlus, Shield, Clock, Check, X } from 'lucide-react';
+import { Mail, Users, UserPlus, Shield, Clock, Check, X, Copy, MessageCircle } from 'lucide-react';
 
 export const UserManagement = () => {
   const { selectedCompany } = useCompanyContext();
@@ -28,21 +28,21 @@ export const UserManagement = () => {
     if (!selectedCompany || !inviteEmail.trim()) return;
 
     try {
-      await createInvitation.mutateAsync({
+      const invitation = await createInvitation.mutateAsync({
         email: inviteEmail,
         companyId: selectedCompany.id,
       });
 
       toast({
-        title: 'Convite enviado!',
-        description: `Convite enviado para ${inviteEmail}`,
+        title: 'Convite criado!',
+        description: `Convite criado para ${inviteEmail}. Código: ${invitation.invite_code}`,
       });
 
       setInviteEmail('');
       setShowInviteDialog(false);
     } catch (error: any) {
       toast({
-        title: 'Erro ao enviar convite',
+        title: 'Erro ao criar convite',
         description: error.message,
         variant: 'destructive',
       });
@@ -72,6 +72,18 @@ export const UserManagement = () => {
     }
   };
 
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: 'Copiado!',
+      description: `${type} copiado para a área de transferência`,
+    });
+  };
+
+  const openWhatsApp = (whatsappLink: string) => {
+    window.open(whatsappLink, '_blank');
+  };
+
   if (!selectedCompany) {
     return (
       <div className="text-center py-8">
@@ -99,7 +111,7 @@ export const UserManagement = () => {
             <DialogHeader>
               <DialogTitle>Convidar Novo Usuário</DialogTitle>
               <DialogDescription>
-                Envie um convite por email para um novo usuário se juntar à empresa.
+                Crie um convite para um novo usuário se juntar à empresa.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -120,7 +132,7 @@ export const UserManagement = () => {
                   onClick={handleInviteUser}
                   disabled={!inviteEmail.trim() || createInvitation.isPending}
                 >
-                  {createInvitation.isPending ? 'Enviando...' : 'Enviar Convite'}
+                  {createInvitation.isPending ? 'Criando...' : 'Criar Convite'}
                 </Button>
               </div>
             </div>
@@ -192,33 +204,100 @@ export const UserManagement = () => {
             </div>
           ) : (
             <div className="grid gap-4">
-              {invitations.map((invitation) => (
+              {invitations.map((invitation: Invitation) => (
                 <Card key={invitation.id}>
                   <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium text-slate-900">{invitation.email}</h3>
-                        <p className="text-sm text-slate-600">
-                          Convidado por {invitation.invited_by_profile?.full_name}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge 
-                            variant={
-                              invitation.status === 'pending' ? 'default' :
-                              invitation.status === 'accepted' ? 'secondary' : 'destructive'
-                            }
-                          >
-                            {invitation.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
-                            {invitation.status === 'accepted' && <Check className="w-3 h-3 mr-1" />}
-                            {invitation.status === 'expired' && <X className="w-3 h-3 mr-1" />}
-                            {invitation.status === 'pending' ? 'Pendente' :
-                             invitation.status === 'accepted' ? 'Aceito' : 'Expirado'}
-                          </Badge>
-                          <span className="text-xs text-slate-500">
-                            Expira em {new Date(invitation.expires_at).toLocaleDateString('pt-BR')}
-                          </span>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium text-slate-900">{invitation.email}</h3>
+                          <p className="text-sm text-slate-600">
+                            Convidado por {invitation.invited_by_profile?.full_name}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge 
+                              variant={
+                                invitation.status === 'pending' ? 'default' :
+                                invitation.status === 'accepted' ? 'secondary' : 'destructive'
+                              }
+                            >
+                              {invitation.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
+                              {invitation.status === 'accepted' && <Check className="w-3 h-3 mr-1" />}
+                              {invitation.status === 'expired' && <X className="w-3 h-3 mr-1" />}
+                              {invitation.status === 'pending' ? 'Pendente' :
+                               invitation.status === 'accepted' ? 'Aceito' : 'Expirado'}
+                            </Badge>
+                            <span className="text-xs text-slate-500">
+                              Expira em {new Date(invitation.expires_at).toLocaleDateString('pt-BR')}
+                            </span>
+                          </div>
                         </div>
                       </div>
+
+                      {invitation.status === 'pending' && (
+                        <div className="border-t pt-4 space-y-3">
+                          <div>
+                            <label className="text-sm font-medium text-slate-700">Código do Convite:</label>
+                            <div className="flex items-center gap-2 mt-1">
+                              <code className="bg-slate-100 px-2 py-1 rounded text-sm font-mono">
+                                {invitation.invite_code}
+                              </code>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => copyToClipboard(invitation.invite_code, 'Código do convite')}
+                              >
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-sm font-medium text-slate-700">Link de Convite:</label>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Input
+                                readOnly
+                                value={`${window.location.origin}/invite/${invitation.invite_code}`}
+                                className="text-xs"
+                              />
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => copyToClipboard(
+                                  `${window.location.origin}/invite/${invitation.invite_code}`, 
+                                  'Link do convite'
+                                )}
+                              >
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {invitation.whatsapp_link && (
+                            <div>
+                              <label className="text-sm font-medium text-slate-700">Compartilhar no WhatsApp:</label>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="text-green-600"
+                                  onClick={() => openWhatsApp(invitation.whatsapp_link!)}
+                                >
+                                  <MessageCircle className="w-3 h-3 mr-1" />
+                                  Abrir WhatsApp
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => copyToClipboard(invitation.whatsapp_link!, 'Link do WhatsApp')}
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

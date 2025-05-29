@@ -11,6 +11,9 @@ export interface Invitation {
   status: 'pending' | 'accepted' | 'expired';
   created_at: string;
   expires_at: string;
+  invite_code: string;
+  whatsapp_link: string | null;
+  accepted_at: string | null;
   companies?: {
     name: string;
   };
@@ -59,7 +62,6 @@ export function useCreateInvitation() {
           company_id: companyId,
           invited_by: user.id,
           status: 'pending',
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
         })
         .select()
         .single();
@@ -112,7 +114,7 @@ export function useAcceptInvitation() {
       // Atualizar status do convite
       const { error: updateError } = await supabase
         .from('invitations')
-        .update({ status: 'accepted' })
+        .update({ status: 'accepted', accepted_at: new Date().toISOString() })
         .eq('id', invitationId);
       
       if (updateError) throw updateError;
@@ -123,5 +125,57 @@ export function useAcceptInvitation() {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       queryClient.invalidateQueries({ queryKey: ['invitations'] });
     },
+  });
+}
+
+export function useAcceptInvitationByCode() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  return useMutation({
+    mutationFn: async (inviteCode: string) => {
+      if (!user) throw new Error('Usuário não autenticado');
+      
+      const { data, error } = await supabase.rpc('accept_invitation_by_code', {
+        invite_code: inviteCode,
+        user_email: user.email
+      });
+      
+      if (error) throw error;
+      
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['invitations'] });
+    },
+  });
+}
+
+export function useGetInvitationByCode(inviteCode?: string) {
+  return useQuery({
+    queryKey: ['invitation-by-code', inviteCode],
+    queryFn: async () => {
+      if (!inviteCode) return null;
+      
+      const { data, error } = await supabase
+        .from('invitations')
+        .select(`
+          *,
+          companies(name, description)
+        `)
+        .eq('invite_code', inviteCode)
+        .eq('status', 'pending')
+        .gt('expires_at', new Date().toISOString())
+        .single();
+      
+      if (error) return null;
+      return data;
+    },
+    enabled: !!inviteCode,
   });
 }

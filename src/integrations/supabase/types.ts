@@ -140,6 +140,60 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          company_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invite_code: string
+          invited_by: string
+          status: string
+          whatsapp_link: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          company_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invite_code?: string
+          invited_by: string
+          status?: string
+          whatsapp_link?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          company_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invite_code?: string
+          invited_by?: string
+          status?: string
+          whatsapp_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -402,9 +456,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_invitation_by_code: {
+        Args: { invite_code: string; user_email: string }
+        Returns: Json
+      }
       create_default_roles: {
         Args: { _company_id: string }
         Returns: undefined
+      }
+      generate_whatsapp_link: {
+        Args: { invite_code: string; company_name: string }
+        Returns: string
       }
       user_has_permission: {
         Args: {

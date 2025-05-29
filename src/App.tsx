@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CompanySettings from "./pages/CompanySettings";
 import UserManagement from "./pages/UserManagement";
+import InviteAccept from "./pages/InviteAccept";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -32,6 +33,7 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/invite/:inviteCode" element={<InviteAccept />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <Index />
