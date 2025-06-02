@@ -1,5 +1,4 @@
 
-import { Draggable } from '@hello-pangea/dnd';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TaskCard } from './TaskCard';
 import { Task, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
@@ -98,25 +97,15 @@ export const TaskColumn = ({ title, tasks, status, companyId, onTaskDetails }: T
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {tasks.map((task, index) => (
-            <Draggable key={task.id} draggableId={task.id} index={index}>
-              {(provided, snapshot) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.draggableProps}
-                  {...provided.dragHandleProps}
-                >
-                  <TaskCard
-                    task={task}
-                    onStatusChange={() => {}}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onDetails={onTaskDetails}
-                    isDragging={snapshot.isDragging}
-                  />
-                </div>
-              )}
-            </Draggable>
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onStatusChange={() => {}}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onDetails={onTaskDetails}
+            />
           ))}
           {tasks.length === 0 && (
             <div className="text-center py-8 text-slate-400">
@@ -133,13 +122,7 @@ export const TaskColumn = ({ title, tasks, status, companyId, onTaskDetails }: T
           onSubmit={handleUpdateTask}
           taskType="personal"
           companyId={companyId}
-          initialData={{
-            title: editingTask.title,
-            description: editingTask.description || '',
-            priority: editingTask.priority,
-            dueDate: editingTask.due_date ? editingTask.due_date.split('T')[0] : '',
-            estimatedHours: editingTask.estimated_hours?.toString() || '',
-          }}
+          trigger={<div />}
         />
       )}
     </>

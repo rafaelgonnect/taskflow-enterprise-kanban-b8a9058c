@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import { TaskColumn } from './TaskColumn';
 import { usePersonalTasks, useUpdateTaskStatus, Task } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
@@ -32,47 +31,6 @@ export const TaskBoard = ({ companyId, departmentId, userId, onTaskDetails }: Ta
   const inProgressTasks = filteredTasks.filter(task => task.status === 'in_progress');
   const doneTasks = filteredTasks.filter(task => task.status === 'done');
 
-  const handleDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId } = result;
-
-    if (!destination) return;
-
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) {
-      return;
-    }
-
-    const newStatus = destination.droppableId as 'todo' | 'in_progress' | 'done';
-    
-    updateTaskStatus.mutate({
-      taskId: draggableId,
-      newStatus,
-      companyId
-    }, {
-      onSuccess: () => {
-        const statusLabels = {
-          'todo': 'A Fazer',
-          'in_progress': 'Em Progresso',
-          'done': 'Concluído'
-        };
-        
-        toast({
-          title: 'Status atualizado!',
-          description: `Tarefa movida para "${statusLabels[newStatus]}"`,
-        });
-      },
-      onError: (error: any) => {
-        toast({
-          title: 'Erro ao atualizar status',
-          description: error.message,
-          variant: 'destructive',
-        });
-      }
-    });
-  };
-
   if (isLoading) {
     return (
       <div className="text-center py-8">
@@ -83,53 +41,30 @@ export const TaskBoard = ({ companyId, departmentId, userId, onTaskDetails }: Ta
   }
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Droppable droppableId="todo">
-          {(provided) => (
-            <div ref={provided.innerRef} {...provided.droppableProps}>
-              <TaskColumn
-                title="A Fazer"
-                tasks={todoTasks}
-                status="todo"
-                companyId={companyId}
-                onTaskDetails={onTaskDetails}
-              />
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <TaskColumn
+        title="A Fazer"
+        tasks={todoTasks}
+        status="todo"
+        companyId={companyId}
+        onTaskDetails={onTaskDetails}
+      />
 
-        <Droppable droppableId="in_progress">
-          {(provided) => (
-            <div ref={provided.innerRef} {...provided.droppableProps}>
-              <TaskColumn
-                title="Em Progresso"
-                tasks={inProgressTasks}
-                status="in_progress"
-                companyId={companyId}
-                onTaskDetails={onTaskDetails}
-              />
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
+      <TaskColumn
+        title="Em Progresso"
+        tasks={inProgressTasks}
+        status="in_progress"
+        companyId={companyId}
+        onTaskDetails={onTaskDetails}
+      />
 
-        <Droppable droppableId="done">
-          {(provided) => (
-            <div ref={provided.innerRef} {...provided.droppableProps}>
-              <TaskColumn
-                title="Concluído"
-                tasks={doneTasks}
-                status="done"
-                companyId={companyId}
-                onTaskDetails={onTaskDetails}
-              />
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </div>
-    </DragDropContext>
+      <TaskColumn
+        title="Concluído"
+        tasks={doneTasks}
+        status="done"
+        companyId={companyId}
+        onTaskDetails={onTaskDetails}
+      />
+    </div>
   );
 };
