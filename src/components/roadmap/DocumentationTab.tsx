@@ -8,11 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useRoadmapDocumentation, useDocumentationByType } from '@/hooks/useRoadmapDocumentation';
 import { DocumentationEditor } from './DocumentationEditor';
 import { DocumentationType } from '@/types/roadmap';
-import { Plus, FileText, Database, Settings, TestTube, Code, BookOpen } from 'lucide-react';
+import { Plus, FileText, Database, Settings, TestTube, Code, BookOpen, RefreshCw } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCompanyContext } from '@/contexts/CompanyContext';
+import { useToast } from '@/hooks/use-toast';
 
 export const DocumentationTab = () => {
   const [selectedType, setSelectedType] = useState<DocumentationType>('specs');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const queryClient = useQueryClient();
+  const { selectedCompany } = useCompanyContext();
+  const { toast } = useToast();
 
   const { data: allDocs = [] } = useRoadmapDocumentation();
   const { data: typeDocs = [] } = useDocumentationByType(selectedType);
@@ -61,6 +69,32 @@ export const DocumentationTab = () => {
     return [];
   };
 
+  const handleRefreshDocumentation = async () => {
+    setIsRefreshing(true);
+    try {
+      // Invalidar todas as queries relacionadas à documentação
+      await queryClient.invalidateQueries({ 
+        queryKey: ['roadmap-documentation', selectedCompany?.id] 
+      });
+      await queryClient.invalidateQueries({ 
+        queryKey: ['roadmap-documentation-by-type', selectedCompany?.id] 
+      });
+      
+      toast({
+        title: 'Documentação atualizada',
+        description: 'Os dados da documentação foram recarregados com sucesso',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao atualizar',
+        description: 'Erro ao recarregar a documentação',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -71,10 +105,20 @@ export const DocumentationTab = () => {
             Gerencie especificações, scripts e contexto para desenvolvimento
           </p>
         </div>
-        <Button onClick={() => setIsEditorOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Documentação
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleRefreshDocumentation}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+          </Button>
+          <Button onClick={() => setIsEditorOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Documentação
+          </Button>
+        </div>
       </div>
 
       {/* Overview Cards */}
