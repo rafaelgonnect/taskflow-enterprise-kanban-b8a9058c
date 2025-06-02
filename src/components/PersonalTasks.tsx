@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { usePersonalTasks, useCreateTask, useUpdateTask, useDeleteTask, useUpdateTaskStatus, Task } from '@/hooks/useTasks';
@@ -17,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Edit, Trash2, MoreVertical, AlertCircle, Calendar, Eye } from 'lucide-react';
 import { useStartTimer, useStopTimer } from '@/hooks/useTaskTimer';
+import { useDepartments } from '@/hooks/useDepartments';
 
 export const PersonalTasks = () => {
   const { selectedCompany } = useCompanyContext();
@@ -31,6 +31,9 @@ export const PersonalTasks = () => {
     priority: 'medium' as 'high' | 'medium' | 'low',
     dueDate: '',
     estimatedHours: '',
+    taskType: 'personal' as 'personal' | 'department' | 'company',
+    departmentId: '',
+    isPublic: false,
   });
 
   const { data: tasks = [], isLoading: tasksLoading } = usePersonalTasks(selectedCompany?.id);
@@ -40,6 +43,7 @@ export const PersonalTasks = () => {
   const updateTaskStatus = useUpdateTaskStatus();
   const startTimer = useStartTimer();
   const stopTimer = useStopTimer();
+  const { data: departments = [] } = useDepartments(selectedCompany?.id);
 
   const handleCreateTask = async () => {
     if (!selectedCompany || !formData.title.trim()) return;
@@ -52,14 +56,32 @@ export const PersonalTasks = () => {
         companyId: selectedCompany.id,
         dueDate: formData.dueDate || undefined,
         estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : undefined,
+        taskType: formData.taskType,
+        departmentId: formData.departmentId || undefined,
+        isPublic: formData.isPublic,
       });
+
+      const taskTypeLabel = {
+        'personal': 'pessoal',
+        'department': 'departamental',
+        'company': 'empresarial'
+      };
 
       toast({
         title: 'Tarefa criada!',
-        description: `Tarefa "${formData.title}" criada com sucesso`,
+        description: `Tarefa ${taskTypeLabel[formData.taskType]} "${formData.title}" criada com sucesso`,
       });
 
-      setFormData({ title: '', description: '', priority: 'medium', dueDate: '', estimatedHours: '' });
+      setFormData({ 
+        title: '', 
+        description: '', 
+        priority: 'medium', 
+        dueDate: '', 
+        estimatedHours: '',
+        taskType: 'personal',
+        departmentId: '',
+        isPublic: false,
+      });
       setShowCreateDialog(false);
     } catch (error: any) {
       toast({
@@ -192,11 +214,23 @@ export const PersonalTasks = () => {
       priority: task.priority,
       dueDate: task.due_date ? task.due_date.split('T')[0] : '',
       estimatedHours: task.estimated_hours?.toString() || '',
+      taskType: task.task_type,
+      departmentId: task.department_id || '',
+      isPublic: task.is_public,
     });
   };
 
   const resetForm = () => {
-    setFormData({ title: '', description: '', priority: 'medium', dueDate: '', estimatedHours: '' });
+    setFormData({ 
+      title: '', 
+      description: '', 
+      priority: 'medium', 
+      dueDate: '', 
+      estimatedHours: '',
+      taskType: 'personal',
+      departmentId: '',
+      isPublic: false,
+    });
     setEditingTask(null);
     setShowCreateDialog(false);
   };
@@ -254,7 +288,7 @@ export const PersonalTasks = () => {
               <DialogDescription>
                 {editingTask 
                   ? 'Edite as informações da tarefa'
-                  : 'Crie uma nova tarefa pessoal'
+                  : 'Crie uma nova tarefa'
                 }
               </DialogDescription>
             </DialogHeader>
@@ -278,6 +312,58 @@ export const PersonalTasks = () => {
                   className="mt-1"
                 />
               </div>
+              
+              {!editingTask && (
+                <div>
+                  <label className="text-sm font-medium">Tipo de tarefa</label>
+                  <Select value={formData.taskType} onValueChange={(value: 'personal' | 'department' | 'company') => 
+                    setFormData({ ...formData, taskType: value, departmentId: '', isPublic: false })
+                  }>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="personal">Pessoal</SelectItem>
+                      <SelectItem value="department">Departamental</SelectItem>
+                      <SelectItem value="company">Empresarial</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.taskType === 'department' && (
+                <div>
+                  <label className="text-sm font-medium">Departamento</label>
+                  <Select value={formData.departmentId} onValueChange={(value) => setFormData({ ...formData, departmentId: value })}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Selecione um departamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {(formData.taskType === 'department' || formData.taskType === 'company') && (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isPublic"
+                    checked={formData.isPublic}
+                    onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
+                    className="rounded"
+                  />
+                  <label htmlFor="isPublic" className="text-sm font-medium">
+                    Tarefa pública (outros membros podem aceitar)
+                  </label>
+                </div>
+              )}
+
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium">Prioridade</label>

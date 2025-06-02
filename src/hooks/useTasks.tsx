@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -21,6 +20,10 @@ export interface Task {
   is_timer_running?: boolean;
   current_timer_start?: string;
   total_time_minutes?: number;
+  task_type?: 'personal' | 'department' | 'company';
+  is_public?: boolean;
+  accepted_by?: string;
+  accepted_at?: string;
 }
 
 export interface CreateTaskData {
@@ -32,6 +35,8 @@ export interface CreateTaskData {
   assigneeId?: string;
   dueDate?: string;
   estimatedHours?: number;
+  taskType?: 'personal' | 'department' | 'company';
+  isPublic?: boolean;
 }
 
 export interface UpdateTaskData extends CreateTaskData {
@@ -101,11 +106,13 @@ export function useCreateTask() {
           priority: taskData.priority,
           company_id: taskData.companyId,
           department_id: taskData.departmentId,
-          assignee_id: taskData.assigneeId || user.id,
+          assignee_id: taskData.taskType === 'personal' ? (taskData.assigneeId || user.id) : null,
           created_by: user.id,
           due_date: taskData.dueDate,
           estimated_hours: taskData.estimatedHours,
           status: 'todo',
+          task_type: taskData.taskType || 'personal',
+          is_public: taskData.isPublic || false,
         })
         .select()
         .single();
@@ -121,7 +128,7 @@ export function useCreateTask() {
         .insert({
           task_id: data.id,
           action: 'created',
-          new_value: 'Tarefa criada',
+          new_value: `Tarefa ${taskData.taskType === 'personal' ? 'pessoal' : taskData.taskType === 'department' ? 'departamental' : 'empresarial'} criada`,
           changed_by: user.id,
         });
 
@@ -134,6 +141,8 @@ export function useCreateTask() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['company-tasks'] });
     },
   });
 }

@@ -105,6 +105,55 @@ export type Database = {
           },
         ]
       }
+      department_members: {
+        Row: {
+          added_at: string
+          added_by: string
+          department_id: string
+          id: string
+          is_active: boolean
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          department_id: string
+          id?: string
+          is_active?: boolean
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          department_id?: string
+          id?: string
+          is_active?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_members_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_members_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           company_id: string
@@ -455,6 +504,8 @@ export type Database = {
       }
       tasks: {
         Row: {
+          accepted_at: string | null
+          accepted_by: string | null
           actual_hours: number | null
           assignee_id: string | null
           company_id: string
@@ -466,14 +517,18 @@ export type Database = {
           due_date: string | null
           estimated_hours: number | null
           id: string
+          is_public: boolean | null
           is_timer_running: boolean | null
           priority: string
           status: string
+          task_type: string
           title: string
           total_time_minutes: number | null
           updated_at: string
         }
         Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
           actual_hours?: number | null
           assignee_id?: string | null
           company_id: string
@@ -485,14 +540,18 @@ export type Database = {
           due_date?: string | null
           estimated_hours?: number | null
           id?: string
+          is_public?: boolean | null
           is_timer_running?: boolean | null
           priority?: string
           status?: string
+          task_type?: string
           title: string
           total_time_minutes?: number | null
           updated_at?: string
         }
         Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
           actual_hours?: number | null
           assignee_id?: string | null
           company_id?: string
@@ -504,14 +563,23 @@ export type Database = {
           due_date?: string | null
           estimated_hours?: number | null
           id?: string
+          is_public?: boolean | null
           is_timer_running?: boolean | null
           priority?: string
           status?: string
+          task_type?: string
           title?: string
           total_time_minutes?: number | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_assignee_id_fkey"
             columns: ["assignee_id"]
@@ -691,6 +759,10 @@ export type Database = {
       accept_invitation_by_code: {
         Args: { invite_code: string; user_email: string }
         Returns: Json
+      }
+      accept_public_task: {
+        Args: { task_id_param: string }
+        Returns: boolean
       }
       calculate_total_time: {
         Args: { task_id_param: string }

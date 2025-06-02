@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, Department } from '@/hooks/useDepartments';
@@ -19,6 +18,7 @@ export const DepartmentManagement = () => {
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -115,6 +115,10 @@ export const DepartmentManagement = () => {
       description: department.description || '',
       managerId: department.manager_id || 'no-manager',
     });
+  };
+
+  const openMembersDialog = (department: Department) => {
+    setSelectedDepartment(department);
   };
 
   const resetForm = () => {
@@ -250,31 +254,53 @@ export const DepartmentManagement = () => {
                     </div>
                   </div>
                   
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openEditDialog(department)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDeleteDepartment(department)}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openMembersDialog(department)}
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Membros
+                    </Button>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditDialog(department)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteDepartment(department)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Dialog de Membros do Departamento */}
+      {selectedDepartment && (
+        <DepartmentMembersDialog
+          isOpen={!!selectedDepartment}
+          onClose={() => setSelectedDepartment(null)}
+          departmentId={selectedDepartment.id}
+          departmentName={selectedDepartment.name}
+          companyId={selectedCompany.id}
+        />
       )}
     </div>
   );
