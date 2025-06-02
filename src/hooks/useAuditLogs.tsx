@@ -11,7 +11,7 @@ export interface AuditLog {
   target_id: string | null;
   old_values: any;
   new_values: any;
-  ip_address: string | null;
+  ip_address: unknown | null;
   user_agent: string | null;
   company_id: string;
   created_at: string;
