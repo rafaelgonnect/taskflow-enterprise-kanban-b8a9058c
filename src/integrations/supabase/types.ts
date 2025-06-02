@@ -9,6 +9,59 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_insights: {
+        Row: {
+          company_id: string
+          confidence_score: number | null
+          content: string
+          created_at: string
+          id: string
+          insight_type: string
+          metadata: Json | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          roadmap_item_id: string | null
+          status: string | null
+          title: string
+        }
+        Insert: {
+          company_id: string
+          confidence_score?: number | null
+          content: string
+          created_at?: string
+          id?: string
+          insight_type: string
+          metadata?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          roadmap_item_id?: string | null
+          status?: string | null
+          title: string
+        }
+        Update: {
+          company_id?: string
+          confidence_score?: number | null
+          content?: string
+          created_at?: string
+          id?: string
+          insight_type?: string
+          metadata?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          roadmap_item_id?: string | null
+          status?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_insights_roadmap_item_id_fkey"
+            columns: ["roadmap_item_id"]
+            isOneToOne: false
+            referencedRelation: "roadmap_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -362,62 +415,178 @@ export type Database = {
           },
         ]
       }
+      roadmap_configs: {
+        Row: {
+          company_id: string
+          config_key: string
+          config_value: Json
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          config_key: string
+          config_value: Json
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          config_key?: string
+          config_value?: Json
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      roadmap_documentation: {
+        Row: {
+          company_id: string
+          content: string
+          created_at: string
+          created_by: string
+          doc_type: string
+          format: string
+          id: string
+          is_active: boolean | null
+          roadmap_item_id: string | null
+          tags: Json | null
+          title: string
+          updated_at: string
+          version: number | null
+        }
+        Insert: {
+          company_id: string
+          content: string
+          created_at?: string
+          created_by: string
+          doc_type: string
+          format?: string
+          id?: string
+          is_active?: boolean | null
+          roadmap_item_id?: string | null
+          tags?: Json | null
+          title: string
+          updated_at?: string
+          version?: number | null
+        }
+        Update: {
+          company_id?: string
+          content?: string
+          created_at?: string
+          created_by?: string
+          doc_type?: string
+          format?: string
+          id?: string
+          is_active?: boolean | null
+          roadmap_item_id?: string | null
+          tags?: Json | null
+          title?: string
+          updated_at?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_documentation_roadmap_item_id_fkey"
+            columns: ["roadmap_item_id"]
+            isOneToOne: false
+            referencedRelation: "roadmap_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roadmap_items: {
         Row: {
           actual_hours: number | null
+          ai_suggestions: string | null
           assigned_to: string | null
           category: Database["public"]["Enums"]["roadmap_category"]
           company_id: string
           completed_date: string | null
+          context_tags: Json | null
           created_at: string
           created_by: string
+          dependencies: Json | null
           description: string | null
+          documentation_url: string | null
           estimated_hours: number | null
           id: string
           priority: Database["public"]["Enums"]["roadmap_priority"]
+          source: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["roadmap_status"]
           target_date: string | null
+          technical_specs: string | null
+          test_criteria: Json | null
+          test_results: Json | null
           title: string
           updated_at: string
+          validation_status: string | null
           version: string | null
         }
         Insert: {
           actual_hours?: number | null
+          ai_suggestions?: string | null
           assigned_to?: string | null
           category?: Database["public"]["Enums"]["roadmap_category"]
           company_id: string
           completed_date?: string | null
+          context_tags?: Json | null
           created_at?: string
           created_by: string
+          dependencies?: Json | null
           description?: string | null
+          documentation_url?: string | null
           estimated_hours?: number | null
           id?: string
           priority?: Database["public"]["Enums"]["roadmap_priority"]
+          source?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["roadmap_status"]
           target_date?: string | null
+          technical_specs?: string | null
+          test_criteria?: Json | null
+          test_results?: Json | null
           title: string
           updated_at?: string
+          validation_status?: string | null
           version?: string | null
         }
         Update: {
           actual_hours?: number | null
+          ai_suggestions?: string | null
           assigned_to?: string | null
           category?: Database["public"]["Enums"]["roadmap_category"]
           company_id?: string
           completed_date?: string | null
+          context_tags?: Json | null
           created_at?: string
           created_by?: string
+          dependencies?: Json | null
           description?: string | null
+          documentation_url?: string | null
           estimated_hours?: number | null
           id?: string
           priority?: Database["public"]["Enums"]["roadmap_priority"]
+          source?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["roadmap_status"]
           target_date?: string | null
+          technical_specs?: string | null
+          test_criteria?: Json | null
+          test_results?: Json | null
           title?: string
           updated_at?: string
+          validation_status?: string | null
           version?: string | null
         }
         Relationships: []

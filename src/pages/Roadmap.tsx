@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { RoadmapStats } from '@/components/roadmap/RoadmapStats';
 import { RoadmapItemDialog } from '@/components/roadmap/RoadmapItemDialog';
 import { RoadmapFilters } from '@/types/roadmap';
 import { Plus, Search, Filter, Download, GitBranch } from 'lucide-react';
+import { DocumentationTab } from '@/components/roadmap/DocumentationTab';
 
 const Roadmap = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -70,10 +70,10 @@ const Roadmap = () => {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <GitBranch className="w-8 h-8" />
-            Roadmap & Changelog
+            Roadmap & Desenvolvimento
           </h1>
           <p className="text-gray-600 mt-1">
-            Gerencie funcionalidades e acompanhe o progresso do desenvolvimento
+            Gerencie funcionalidades, documentação e acompanhe o progresso do desenvolvimento
           </p>
         </div>
         
@@ -176,10 +176,11 @@ const Roadmap = () => {
 
       {/* Tabs de Visualização */}
       <Tabs defaultValue="kanban" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="kanban">Kanban</TabsTrigger>
           <TabsTrigger value="changelog">Changelog</TabsTrigger>
           <TabsTrigger value="stats">Métricas</TabsTrigger>
+          <TabsTrigger value="docs">Documentação</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kanban" className="space-y-6">
@@ -256,6 +257,10 @@ const Roadmap = () => {
 
         <TabsContent value="stats" className="space-y-6">
           <RoadmapStats />
+        </TabsContent>
+
+        <TabsContent value="docs" className="space-y-6">
+          <DocumentationTab />
         </TabsContent>
       </Tabs>
 
