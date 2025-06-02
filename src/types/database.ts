@@ -54,7 +54,8 @@ export type Permission =
   'delete_tasks' |
   'assign_tasks' |
   'view_reports' |
-  'manage_permissions';
+  'manage_permissions' |
+  'view_audit_logs';
 
 export interface UserRole {
   id: string;
@@ -63,6 +64,20 @@ export interface UserRole {
   role_id: string;
   assigned_by?: string;
   assigned_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  user_id: string;
+  action: string;
+  target_type: string;
+  target_id?: string;
+  old_values?: any;
+  new_values?: any;
+  ip_address?: string;
+  user_agent?: string;
+  company_id: string;
+  created_at: string;
 }
 
 export interface Task {

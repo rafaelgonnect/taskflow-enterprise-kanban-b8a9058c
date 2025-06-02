@@ -1,22 +1,25 @@
 
 import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
-import { useCompanyUsers } from '@/hooks/useCompanyUsers';
+import { useCompanyUsers, useToggleUserStatus } from '@/hooks/useCompanyUsers';
 import { useCreateInvitation, useInvitations } from '@/hooks/useInvitations';
+import { AuditLogsDialog } from '@/components/AuditLogsDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Plus, Mail, CheckCircle, Clock, X, UserCog, Shield } from 'lucide-react';
+import { Users, Plus, Mail, CheckCircle, Clock, X, UserCog, Shield, FileText, MoreVertical, UserX, UserCheck } from 'lucide-react';
 import { UserPermissionsDialog } from '@/components/UserPermissionsDialog';
 
 export const UserManagement = () => {
   const { selectedCompany } = useCompanyContext();
   const { toast } = useToast();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showAuditLogs, setShowAuditLogs] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
@@ -24,6 +27,7 @@ export const UserManagement = () => {
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers(selectedCompany?.id);
   const { data: invitations = [], isLoading: invitationsLoading } = useInvitations(selectedCompany?.id);
   const createInvitation = useCreateInvitation();
+  const toggleUserStatus = useToggleUserStatus();
 
   const handleInviteUser = async () => {
     if (!selectedCompany || !inviteEmail.trim()) return;
@@ -55,6 +59,29 @@ export const UserManagement = () => {
     setShowPermissionsDialog(true);
   };
 
+  const handleToggleUserStatus = async (user: any) => {
+    if (!selectedCompany) return;
+
+    try {
+      await toggleUserStatus.mutateAsync({
+        userId: user.id,
+        companyId: selectedCompany.id,
+        isActive: !user.is_active,
+      });
+
+      toast({
+        title: 'Status atualizado!',
+        description: `Usuário ${user.is_active ? 'desativado' : 'ativado'} com sucesso`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao alterar status',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -84,44 +111,51 @@ export const UserManagement = () => {
           <p className="text-slate-600">Gerencie os usuários e convites da empresa</p>
         </div>
 
-        <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Convidar Usuário
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Convidar Novo Usuário</DialogTitle>
-              <DialogDescription>
-                Envie um convite por email para um novo usuário se juntar à empresa
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div>
-                <label className="text-sm font-medium">Email do usuário</label>
-                <Input
-                  type="email"
-                  placeholder="usuario@empresa.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                />
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowAuditLogs(true)}>
+            <FileText className="w-4 h-4 mr-2" />
+            Logs de Auditoria
+          </Button>
+          
+          <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Convidar Usuário
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Convidar Novo Usuário</DialogTitle>
+                <DialogDescription>
+                  Envie um convite por email para um novo usuário se juntar à empresa
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <label className="text-sm font-medium">Email do usuário</label>
+                  <Input
+                    type="email"
+                    placeholder="usuario@empresa.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleInviteUser}
+                    disabled={!inviteEmail.trim() || createInvitation.isPending}
+                  >
+                    {createInvitation.isPending ? 'Enviando...' : 'Enviar Convite'}
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={handleInviteUser}
-                  disabled={!inviteEmail.trim() || createInvitation.isPending}
-                >
-                  {createInvitation.isPending ? 'Enviando...' : 'Enviar Convite'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -166,13 +200,36 @@ export const UserManagement = () => {
                       <Badge variant={user.is_active ? "default" : "secondary"}>
                         {user.is_active ? "Ativo" : "Inativo"}
                       </Badge>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleManagePermissions(user)}
-                      >
-                        <UserCog className="w-4 h-4" />
-                      </Button>
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleManagePermissions(user)}>
+                            <UserCog className="w-4 h-4 mr-2" />
+                            Gerenciar Permissões
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleToggleUserStatus(user)}
+                            className={user.is_active ? 'text-red-600' : 'text-green-600'}
+                          >
+                            {user.is_active ? (
+                              <>
+                                <UserX className="w-4 h-4 mr-2" />
+                                Desativar Usuário
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="w-4 h-4 mr-2" />
+                                Ativar Usuário
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 ))}
@@ -238,6 +295,13 @@ export const UserManagement = () => {
           companyId={selectedCompany.id}
         />
       )}
+
+      {/* Dialog de Logs de Auditoria */}
+      <AuditLogsDialog
+        isOpen={showAuditLogs}
+        onClose={() => setShowAuditLogs(false)}
+        companyId={selectedCompany.id}
+      />
     </div>
   );
 };

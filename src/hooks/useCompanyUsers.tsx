@@ -67,7 +67,6 @@ export function useCompanyUsers(companyId?: string) {
           )
         `)
         .eq('user_companies.company_id', companyId)
-        .eq('user_companies.is_active', true)
         .eq('user_roles.company_id', companyId);
       
       console.log('Resultado da query de usuários:', { data, error });
