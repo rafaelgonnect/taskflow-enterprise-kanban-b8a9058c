@@ -114,6 +114,20 @@ export function useCreateTask() {
         console.error('Erro ao criar tarefa:', error);
         throw error;
       }
+
+      // Criar entrada no histórico para tarefa criada
+      const { error: historyError } = await supabase
+        .from('task_history')
+        .insert({
+          task_id: data.id,
+          action: 'created',
+          new_value: 'Tarefa criada',
+          changed_by: user.id,
+        });
+
+      if (historyError) {
+        console.error('Erro ao criar histórico da tarefa:', historyError);
+      }
       
       console.log('Tarefa criada com sucesso:', data);
       return data;
@@ -134,6 +148,14 @@ export function useUpdateTask() {
       if (!user) throw new Error('Usuário não autenticado');
       
       console.log('Atualizando tarefa:', taskData);
+      
+      // Buscar dados atuais da tarefa para comparação
+      const { data: currentTask } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('id', taskData.id)
+        .eq('company_id', taskData.companyId)
+        .single();
       
       const { data, error } = await supabase
         .from('tasks')
@@ -157,6 +179,44 @@ export function useUpdateTask() {
       if (error) {
         console.error('Erro ao atualizar tarefa:', error);
         throw error;
+      }
+
+      // Criar entradas no histórico para as mudanças
+      if (currentTask) {
+        const historyEntries = [];
+
+        if (currentTask.title !== taskData.title) {
+          historyEntries.push({
+            task_id: taskData.id,
+            action: 'title_changed',
+            old_value: currentTask.title,
+            new_value: taskData.title,
+            field_changed: 'title',
+            changed_by: user.id,
+          });
+        }
+
+        if (currentTask.priority !== taskData.priority) {
+          const priorityLabels = { 'high': 'Alta', 'medium': 'Média', 'low': 'Baixa' };
+          historyEntries.push({
+            task_id: taskData.id,
+            action: 'priority_changed',
+            old_value: priorityLabels[currentTask.priority as keyof typeof priorityLabels],
+            new_value: priorityLabels[taskData.priority],
+            field_changed: 'priority',
+            changed_by: user.id,
+          });
+        }
+
+        if (historyEntries.length > 0) {
+          const { error: historyError } = await supabase
+            .from('task_history')
+            .insert(historyEntries);
+
+          if (historyError) {
+            console.error('Erro ao criar histórico da atualização:', historyError);
+          }
+        }
       }
       
       console.log('Tarefa atualizada com sucesso:', data);
@@ -246,7 +306,7 @@ export function useUpdateTaskStatus() {
           'done': 'Concluído'
         };
 
-        await supabase
+        const { error: historyError } = await supabase
           .from('task_history')
           .insert({
             task_id: taskId,
@@ -256,6 +316,10 @@ export function useUpdateTaskStatus() {
             field_changed: 'status',
             changed_by: user.id,
           });
+
+        if (historyError) {
+          console.error('Erro ao criar histórico do status:', historyError);
+        }
       }
       
       console.log('Status atualizado com sucesso:', data);

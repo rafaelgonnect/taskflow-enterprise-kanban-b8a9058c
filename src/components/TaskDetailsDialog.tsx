@@ -83,6 +83,7 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
   // Recarregar dados quando necessário
   useEffect(() => {
     if (task?.id && isOpen) {
+      console.log('Recarregando dados do modal para task:', task.id);
       refetchAttachments();
       refetchComments();
       refetchHistory();
@@ -110,6 +111,13 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
       });
 
       setEditMode(false);
+      
+      // Forçar atualização dos dados
+      setTimeout(() => {
+        refetchAttachments();
+        refetchComments();
+        refetchHistory();
+      }, 1000);
     } catch (error: any) {
       toast({
         title: 'Erro ao atualizar tarefa',
@@ -138,6 +146,12 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
         title: 'Anexo enviado!',
         description: `${file.name} foi anexado à tarefa.`,
       });
+      
+      // Forçar atualização
+      setTimeout(() => {
+        refetchAttachments();
+        refetchHistory();
+      }, 1000);
     } catch (error: any) {
       toast({
         title: 'Erro ao enviar anexo',
@@ -151,12 +165,20 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
     if (!newComment.trim()) return;
 
     try {
+      console.log('Criando comentário no modal:', { taskId: task.id, content: newComment });
       await createComment.mutateAsync({ taskId: task.id, content: newComment });
       setNewComment('');
       toast({
         title: 'Comentário adicionado!',
       });
+      
+      // Forçar atualização
+      setTimeout(() => {
+        refetchComments();
+        refetchHistory();
+      }, 1000);
     } catch (error: any) {
+      console.error('Erro ao criar comentário no modal:', error);
       toast({
         title: 'Erro ao adicionar comentário',
         description: error.message,
@@ -179,6 +201,11 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
       toast({
         title: 'Comentário atualizado!',
       });
+      
+      // Forçar atualização
+      setTimeout(() => {
+        refetchComments();
+      }, 1000);
     } catch (error: any) {
       toast({
         title: 'Erro ao atualizar comentário',
@@ -190,6 +217,8 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
 
   const handleTimerToggle = async () => {
     try {
+      console.log('Timer toggle no modal - estado atual:', task.is_timer_running);
+      
       if (task.is_timer_running) {
         await stopTimer.mutateAsync({ 
           taskId: task.id, 
@@ -208,7 +237,15 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
           description: 'O cronômetro está rodando.',
         });
       }
+      
+      // Forçar atualização de todos os dados
+      setTimeout(() => {
+        refetchAttachments();
+        refetchComments(); 
+        refetchHistory();
+      }, 1000);
     } catch (error: any) {
+      console.error('Erro no timer toggle:', error);
       toast({
         title: 'Erro no timer',
         description: error.message,
@@ -255,6 +292,13 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
     }
   };
 
+  console.log('Modal renderizando com task:', {
+    id: task.id,
+    is_timer_running: task.is_timer_running,
+    comments_count: comments.length,
+    history_count: history.length
+  });
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
@@ -297,6 +341,11 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
               <Badge className={getStatusColor(task.status)}>
                 {task.status === 'todo' ? 'A Fazer' : task.status === 'in_progress' ? 'Em Progresso' : 'Concluído'}
               </Badge>
+              {task.is_timer_running && (
+                <Badge className="bg-green-100 text-green-700 border-green-200 animate-pulse">
+                  Timer Ativo
+                </Badge>
+              )}
             </div>
             {task.due_date && (
               <div className="flex items-center gap-1">
@@ -407,6 +456,7 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
                           onClick={handleTimerToggle}
                           variant={task.is_timer_running ? "destructive" : "default"}
                           disabled={startTimer.isPending || stopTimer.isPending}
+                          className={task.is_timer_running ? "animate-pulse" : ""}
                         >
                           {task.is_timer_running ? (
                             <>

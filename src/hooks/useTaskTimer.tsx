@@ -46,7 +46,7 @@ export function useStartTimer() {
       }
 
       // Criar entrada no histórico para timer iniciado
-      await supabase
+      const { error: historyError } = await supabase
         .from('task_history')
         .insert({
           task_id: taskId,
@@ -54,13 +54,20 @@ export function useStartTimer() {
           new_value: 'Timer iniciado',
           changed_by: user.id,
         });
+
+      if (historyError) {
+        console.error('Erro ao criar histórico do timer:', historyError);
+      }
       
       console.log('Timer iniciado com sucesso:', data);
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      // Invalidar todas as queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task-comments', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task-attachments', variables.taskId] });
     },
   });
 }
@@ -133,7 +140,7 @@ export function useStopTimer() {
       }
 
       // Criar entrada no histórico para timer pausado
-      await supabase
+      const { error: historyError } = await supabase
         .from('task_history')
         .insert({
           task_id: taskId,
@@ -141,13 +148,20 @@ export function useStopTimer() {
           new_value: `Timer pausado (${durationMinutes} min)${description ? ` - ${description}` : ''}`,
           changed_by: user.id,
         });
+
+      if (historyError) {
+        console.error('Erro ao criar histórico do timer:', historyError);
+      }
       
       console.log('Timer pausado com sucesso');
       return { durationMinutes, totalTime: totalTimeResult || 0 };
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      // Invalidar todas as queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task-comments', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task-attachments', variables.taskId] });
     },
   });
 }

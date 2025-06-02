@@ -19,28 +19,44 @@ export function useTaskComments(taskId: string) {
     queryFn: async () => {
       console.log('Buscando comentários da tarefa:', taskId);
       
-      const { data, error } = await supabase
+      const { data: comments, error } = await supabase
         .from('task_comments')
-        .select(`
-          *,
-          profiles:created_by(full_name)
-        `)
+        .select('*')
         .eq('task_id', taskId)
         .order('created_at', { ascending: true });
-      
-      console.log('Resultado dos comentários:', { data, error });
       
       if (error) {
         console.error('Erro ao buscar comentários:', error);
         throw error;
       }
-      
-      return (data || []).map(comment => ({
+
+      if (!comments || comments.length === 0) {
+        console.log('Nenhum comentário encontrado');
+        return [];
+      }
+
+      // Buscar informações dos usuários separadamente
+      const userIds = [...new Set(comments.map(c => c.created_by))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      const profilesMap = (profiles || []).reduce((acc, profile) => {
+        acc[profile.id] = profile.full_name;
+        return acc;
+      }, {} as Record<string, string>);
+
+      const result = comments.map(comment => ({
         ...comment,
-        user_name: comment.profiles?.full_name || 'Usuário desconhecido'
+        user_name: profilesMap[comment.created_by] || 'Usuário desconhecido'
       })) as TaskComment[];
+      
+      console.log('Comentários processados:', result);
+      return result;
     },
     enabled: !!taskId,
+    refetchInterval: 5000, // Atualizar a cada 5 segundos
   });
 }
 
@@ -52,7 +68,7 @@ export function useCreateComment() {
     mutationFn: async ({ taskId, content }: { taskId: string; content: string }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
-      console.log('Criando comentário:', { taskId, content });
+      console.log('Criando comentário:', { taskId, content, userId: user.id });
       
       const { data, error } = await supabase
         .from('task_comments')
@@ -69,8 +85,10 @@ export function useCreateComment() {
         throw error;
       }
 
+      console.log('Comentário criado:', data);
+
       // Criar entrada no histórico para o comentário
-      await supabase
+      const { error: historyError } = await supabase
         .from('task_history')
         .insert({
           task_id: taskId,
@@ -78,13 +96,18 @@ export function useCreateComment() {
           new_value: `Comentário adicionado: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
           changed_by: user.id,
         });
+
+      if (historyError) {
+        console.error('Erro ao criar histórico do comentário:', historyError);
+      }
       
-      console.log('Comentário criado com sucesso:', data);
       return data;
     },
     onSuccess: (_, variables) => {
+      // Invalidar as queries para forçar atualização
       queryClient.invalidateQueries({ queryKey: ['task-comments', variables.taskId] });
       queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks'] });
     },
   });
 }
