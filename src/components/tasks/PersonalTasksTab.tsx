@@ -4,6 +4,8 @@ import { usePersonalTasks, useCreateTask } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TaskBoard } from '@/components/TaskBoard';
+import { TaskListView } from '@/components/TaskListView';
+import { TaskViewToggle } from '@/components/TaskViewToggle';
 import { TaskFormDialog } from './TaskFormDialog';
 import { useToast } from '@/hooks/use-toast';
 import { CheckSquare, Plus } from 'lucide-react';
@@ -15,6 +17,7 @@ interface PersonalTasksTabProps {
 export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const { data: tasks = [], isLoading } = usePersonalTasks(companyId);
   const createTask = useCreateTask();
 
@@ -63,19 +66,23 @@ export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
           <p className="text-slate-600">Suas tarefas individuais</p>
         </div>
 
-        <TaskFormDialog
-          open={showCreateDialog}
-          onOpenChange={setShowCreateDialog}
-          onSubmit={handleCreateTask}
-          taskType="personal"
-          companyId={companyId}
-          trigger={
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Tarefa Pessoal
-            </Button>
-          }
-        />
+        <div className="flex items-center gap-4">
+          <TaskViewToggle view={viewMode} onViewChange={setViewMode} />
+          
+          <TaskFormDialog
+            open={showCreateDialog}
+            onOpenChange={setShowCreateDialog}
+            onSubmit={handleCreateTask}
+            taskType="personal"
+            companyId={companyId}
+            trigger={
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Tarefa Pessoal
+              </Button>
+            }
+          />
+        </div>
       </div>
 
       {tasks.length === 0 ? (
@@ -87,10 +94,17 @@ export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
           </CardContent>
         </Card>
       ) : (
-        <TaskBoard 
-          companyId={companyId}
-          userId="current"
-        />
+        viewMode === 'kanban' ? (
+          <TaskBoard 
+            companyId={companyId}
+            userId="current"
+          />
+        ) : (
+          <TaskListView 
+            companyId={companyId}
+            userId="current"
+          />
+        )
       )}
     </div>
   );

@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useUpdateUserRole } from '@/hooks/useCompanyUsers';
 import { useRoles, Role } from '@/hooks/useRoles';
-import { Shield, User, Save, X } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { Shield, User, Save, X, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface UserPermissionsDialogProps {
@@ -42,6 +43,7 @@ const PERMISSION_LABELS: Record<string, string> = {
 };
 
 export const UserPermissionsDialog = ({ isOpen, onClose, user, companyId }: UserPermissionsDialogProps) => {
+  const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   
@@ -51,7 +53,22 @@ export const UserPermissionsDialog = ({ isOpen, onClose, user, companyId }: User
   const currentRole = user.user_roles[0]?.roles;
   const selectedRole = roles.find(role => role.id === selectedRoleId);
 
+  // Verificar se o usuário atual pode alterar permissões
+  const canManagePermissions = currentUser?.id !== user.id; // Não pode alterar próprias permissões
+  
+  // Verificar se é administrador (em uma implementação real, verificaria as permissões)
+  const isCurrentUserAdmin = true; // Placeholder - implementar verificação real
+
   const handleSave = async () => {
+    if (!canManagePermissions) {
+      toast({
+        title: 'Erro',
+        description: 'Você não pode alterar suas próprias permissões',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!selectedRoleId) {
       toast({
         title: 'Erro',
@@ -97,6 +114,20 @@ export const UserPermissionsDialog = ({ isOpen, onClose, user, companyId }: User
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Aviso se tentando alterar próprias permissões */}
+          {!canManagePermissions && (
+            <Card className="border-orange-200 bg-orange-50">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+                  <p className="text-orange-800 font-medium">
+                    Você não pode alterar suas próprias permissões por questões de segurança.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Papel Atual */}
           <Card>
             <CardHeader>
@@ -118,52 +149,54 @@ export const UserPermissionsDialog = ({ isOpen, onClose, user, companyId }: User
           </Card>
 
           {/* Seleção de Novo Papel */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Alterar Papel</CardTitle>
-              <CardDescription>
-                Selecione um novo papel para o usuário
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um papel" />
-                </SelectTrigger>
-                <SelectContent>
-                  {rolesLoading ? (
-                    <SelectItem value="loading" disabled>Carregando...</SelectItem>
-                  ) : (
-                    roles.map((role) => (
-                      <SelectItem key={role.id} value={role.id}>
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4" />
-                          <span>{role.name}</span>
-                          {role.is_default && (
-                            <Badge variant="outline" className="ml-2">Padrão</Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+          {canManagePermissions && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Alterar Papel</CardTitle>
+                <CardDescription>
+                  Selecione um novo papel para o usuário
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um papel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rolesLoading ? (
+                      <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                    ) : (
+                      roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            <span>{role.name}</span>
+                            {role.is_default && (
+                              <Badge variant="outline" className="ml-2">Padrão</Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
 
-              {/* Preview das Permissões */}
-              {selectedRole && (
-                <div className="border rounded-lg p-4 bg-slate-50">
-                  <h4 className="font-medium mb-3">Permissões deste papel:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedRole.role_permissions.map((rp, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        {PERMISSION_LABELS[rp.permission] || rp.permission}
-                      </Badge>
-                    ))}
+                {/* Preview das Permissões */}
+                {selectedRole && (
+                  <div className="border rounded-lg p-4 bg-slate-50">
+                    <h4 className="font-medium mb-3">Permissões deste papel:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedRole.role_permissions.map((rp, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {PERMISSION_LABELS[rp.permission] || rp.permission}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Ações */}
           <div className="flex gap-3 justify-end">
@@ -171,13 +204,15 @@ export const UserPermissionsDialog = ({ isOpen, onClose, user, companyId }: User
               <X className="w-4 h-4 mr-2" />
               Cancelar
             </Button>
-            <Button 
-              onClick={handleSave}
-              disabled={!selectedRoleId || updateUserRole.isPending}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {updateUserRole.isPending ? 'Salvando...' : 'Salvar Alterações'}
-            </Button>
+            {canManagePermissions && (
+              <Button 
+                onClick={handleSave}
+                disabled={!selectedRoleId || updateUserRole.isPending}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {updateUserRole.isPending ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>

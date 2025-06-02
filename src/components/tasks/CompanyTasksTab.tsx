@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TaskBoard } from '@/components/TaskBoard';
+import { TaskListView } from '@/components/TaskListView';
+import { TaskViewToggle } from '@/components/TaskViewToggle';
 import { TaskFormDialog } from './TaskFormDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Building, Plus } from 'lucide-react';
@@ -18,6 +20,7 @@ export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   
   const { data: tasks = [], isLoading } = useCompanyTasks(companyId);
   const createTask = useCreateTask();
@@ -71,21 +74,27 @@ export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
           <p className="text-slate-600">Tarefas para toda a empresa</p>
         </div>
 
-        {canCreateCompanyTasks && (
-          <TaskFormDialog
-            open={showCreateDialog}
-            onOpenChange={setShowCreateDialog}
-            onSubmit={handleCreateTask}
-            taskType="company"
-            companyId={companyId}
-            trigger={
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Tarefa Empresarial
-              </Button>
-            }
-          />
-        )}
+        <div className="flex items-center gap-4">
+          {tasks.length > 0 && (
+            <TaskViewToggle view={viewMode} onViewChange={setViewMode} />
+          )}
+          
+          {canCreateCompanyTasks && (
+            <TaskFormDialog
+              open={showCreateDialog}
+              onOpenChange={setShowCreateDialog}
+              onSubmit={handleCreateTask}
+              taskType="company"
+              companyId={companyId}
+              trigger={
+                <Button onClick={() => setShowCreateDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Tarefa Empresarial
+                </Button>
+              }
+            />
+          )}
+        </div>
       </div>
 
       {tasks.length === 0 ? (
@@ -99,9 +108,15 @@ export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
           </CardContent>
         </Card>
       ) : (
-        <TaskBoard 
-          companyId={companyId}
-        />
+        viewMode === 'kanban' ? (
+          <TaskBoard 
+            companyId={companyId}
+          />
+        ) : (
+          <TaskListView 
+            companyId={companyId}
+          />
+        )
       )}
     </div>
   );

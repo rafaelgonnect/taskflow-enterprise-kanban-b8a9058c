@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TaskBoard } from '@/components/TaskBoard';
+import { TaskListView } from '@/components/TaskListView';
+import { TaskViewToggle } from '@/components/TaskViewToggle';
 import { TaskFormDialog } from './TaskFormDialog';
 import { useToast } from '@/hooks/use-toast';
 import { Building2, Plus } from 'lucide-react';
@@ -21,6 +23,7 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
   const { toast } = useToast();
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   
   const { data: departments = [] } = useDepartments(companyId);
   const { data: tasks = [], isLoading } = useDepartmentTasks(selectedDepartmentId);
@@ -77,22 +80,28 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
           <p className="text-slate-600">Tarefas do seu departamento</p>
         </div>
 
-        {canCreateDepartmentTasks && (
-          <TaskFormDialog
-            open={showCreateDialog}
-            onOpenChange={setShowCreateDialog}
-            onSubmit={handleCreateTask}
-            taskType="department"
-            companyId={companyId}
-            departmentId={selectedDepartmentId}
-            trigger={
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Tarefa Departamental
-              </Button>
-            }
-          />
-        )}
+        <div className="flex items-center gap-4">
+          {selectedDepartmentId && (
+            <TaskViewToggle view={viewMode} onViewChange={setViewMode} />
+          )}
+          
+          {canCreateDepartmentTasks && (
+            <TaskFormDialog
+              open={showCreateDialog}
+              onOpenChange={setShowCreateDialog}
+              onSubmit={handleCreateTask}
+              taskType="department"
+              companyId={companyId}
+              departmentId={selectedDepartmentId}
+              trigger={
+                <Button onClick={() => setShowCreateDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Tarefa Departamental
+                </Button>
+              }
+            />
+          )}
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -137,10 +146,17 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
             </CardContent>
           </Card>
         ) : (
-          <TaskBoard 
-            companyId={companyId}
-            departmentId={selectedDepartmentId}
-          />
+          viewMode === 'kanban' ? (
+            <TaskBoard 
+              companyId={companyId}
+              departmentId={selectedDepartmentId}
+            />
+          ) : (
+            <TaskListView 
+              companyId={companyId}
+              departmentId={selectedDepartmentId}
+            />
+          )
         )}
       </div>
     </div>

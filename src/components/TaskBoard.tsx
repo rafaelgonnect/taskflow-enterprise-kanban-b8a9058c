@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { TaskColumn } from "@/components/TaskColumn";
 import { Plus } from "lucide-react";
-import { Task } from '@/hooks/useTasks';
+import { usePersonalTasks, useUpdateTaskStatus, Task } from '@/hooks/useTasks';
 
 interface TaskBoardProps {
   companyId: string;
@@ -10,68 +10,9 @@ interface TaskBoardProps {
   userId?: string;
 }
 
-// Mock tasks that conform to the Task interface
-const mockTasks: Task[] = [
-  {
-    id: "1",
-    title: "Implementar autenticação",
-    description: "Desenvolver sistema de login e cadastro",
-    status: "todo" as const,
-    priority: "high" as const,
-    company_id: "mock-company-id",
-    created_by: "mock-user-id",
-    assignee_id: "joão-silva-id",
-    due_date: "2024-01-15T00:00:00Z",
-    created_at: "2024-01-01T00:00:00Z",
-    updated_at: "2024-01-01T00:00:00Z",
-    estimated_hours: 8
-  },
-  {
-    id: "2",
-    title: "Criar landing page",
-    description: "Design e desenvolvimento da página inicial",
-    status: "in_progress" as const,
-    priority: "medium" as const,
-    company_id: "mock-company-id",
-    created_by: "mock-user-id",
-    assignee_id: "maria-santos-id",
-    due_date: "2024-01-20T00:00:00Z",
-    created_at: "2024-01-02T00:00:00Z",
-    updated_at: "2024-01-02T00:00:00Z",
-    estimated_hours: 16
-  },
-  {
-    id: "3",
-    title: "Revisar proposta comercial",
-    description: "Análise e ajustes na proposta para cliente",
-    status: "done" as const,
-    priority: "high" as const,
-    company_id: "mock-company-id",
-    created_by: "mock-user-id",
-    assignee_id: "pedro-lima-id",
-    due_date: "2024-01-12T00:00:00Z",
-    created_at: "2024-01-03T00:00:00Z",
-    updated_at: "2024-01-03T00:00:00Z",
-    estimated_hours: 4
-  },
-  {
-    id: "4",
-    title: "Configurar servidor",
-    description: "Setup do ambiente de produção",
-    status: "todo" as const,
-    priority: "medium" as const,
-    company_id: "mock-company-id",
-    created_by: "mock-user-id",
-    assignee_id: "ana-costa-id",
-    due_date: "2024-01-25T00:00:00Z",
-    created_at: "2024-01-04T00:00:00Z",
-    updated_at: "2024-01-04T00:00:00Z",
-    estimated_hours: 12
-  }
-];
-
 export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) => {
-  const [tasks, setTasks] = useState(mockTasks);
+  const { data: tasks = [], isLoading } = usePersonalTasks(companyId);
+  const updateTaskStatus = useUpdateTaskStatus();
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
 
   const columns = [
@@ -84,12 +25,12 @@ export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) =
     let filteredTasks = tasks;
     
     if (departmentId && departmentId !== "all" && departmentId !== "user") {
-      // In a real implementation, you would filter by department
-      filteredTasks = tasks;
+      // Em uma implementação real, filtraria por departamento
+      filteredTasks = tasks.filter(task => task.department_id === departmentId);
     }
     
     if (userId === "current") {
-      // In a real implementation, you would filter by current user
+      // Em uma implementação real, filtraria pelo usuário atual
       filteredTasks = tasks;
     }
 
@@ -97,30 +38,37 @@ export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) =
   };
 
   const handleStatusChange = (taskId: string, newStatus: 'todo' | 'in_progress' | 'done') => {
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === taskId 
-          ? { ...task, status: newStatus, updated_at: new Date().toISOString() }
-          : task
-      )
-    );
+    updateTaskStatus.mutate({
+      taskId,
+      newStatus,
+      companyId
+    });
     setDraggedTask(null);
   };
 
   const handleEdit = (task: Task) => {
     console.log('Editing task:', task);
-    // In real implementation, this would open an edit dialog
+    // Em uma implementação real, abriria um diálogo de edição
   };
 
   const handleDelete = (task: Task) => {
     console.log('Deleting task:', task);
-    setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id));
+    // Em uma implementação real, deletaria a tarefa
   };
 
   const handleDetails = (task: Task) => {
     console.log('Viewing task details:', task);
-    // In real implementation, this would open the details dialog
+    // Em uma implementação real, abriria o diálogo de detalhes
   };
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-2 text-slate-600">Carregando tarefas...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -135,10 +83,6 @@ export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) =
              `Tarefas do departamento de ${departmentId}`}
           </p>
         </div>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200">
-          <Plus size={20} />
-          Nova Tarefa
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
