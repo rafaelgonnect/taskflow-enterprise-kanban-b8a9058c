@@ -177,12 +177,12 @@ export const DepartmentTaskManagement = ({ departmentId, companyId, isManager }:
                           </SelectContent>
                         </Select>
 
-                        <Badge className={getPriorityColor(task.priority)}>
-                          {getPriorityLabel(task.priority)}
+                        <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                          {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
                         </Badge>
 
-                        <Badge variant="outline" className={getStatusColor(task.status)}>
-                          {getStatusLabel(task.status)}
+                        <Badge variant="outline" className="bg-slate-100 text-slate-800">
+                          {task.status === 'todo' ? 'A Fazer' : task.status === 'in_progress' ? 'Em Progresso' : 'Concluído'}
                         </Badge>
 
                         {task.due_date && (
@@ -226,8 +226,8 @@ export const DepartmentTaskManagement = ({ departmentId, companyId, isManager }:
         {selectedTask && (
           <TaskDetailsDialog
             task={selectedTask}
-            open={showDetailsDialog}
-            onOpenChange={setShowDetailsDialog}
+            isOpen={showDetailsDialog}
+            onClose={() => setShowDetailsDialog(false)}
             companyId={companyId}
           />
         )}

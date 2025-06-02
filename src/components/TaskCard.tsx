@@ -127,8 +127,8 @@ export const TaskCard = ({
 
       <TaskDetailsDialog
         task={task}
-        open={showDetails}
-        onOpenChange={setShowDetails}
+        isOpen={showDetails}
+        onClose={() => setShowDetails(false)}
         companyId={task.company_id}
       />
     </>
