@@ -2,16 +2,7 @@
 import { useState } from "react";
 import { TaskColumn } from "@/components/TaskColumn";
 import { Plus } from "lucide-react";
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  priority: "high" | "medium" | "low";
-  assignee: string;
-  dueDate: string;
-  department: string;
-}
+import { Task } from '@/hooks/useTasks';
 
 interface TaskBoardProps {
   companyId: string;
@@ -19,42 +10,63 @@ interface TaskBoardProps {
   userId?: string;
 }
 
+// Mock tasks that conform to the Task interface
 const mockTasks: Task[] = [
   {
     id: "1",
     title: "Implementar autenticação",
     description: "Desenvolver sistema de login e cadastro",
-    priority: "high",
-    assignee: "João Silva",
-    dueDate: "2024-01-15",
-    department: "desenvolvimento"
+    status: "todo" as const,
+    priority: "high" as const,
+    company_id: "mock-company-id",
+    created_by: "mock-user-id",
+    assignee_id: "joão-silva-id",
+    due_date: "2024-01-15T00:00:00Z",
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z",
+    estimated_hours: 8
   },
   {
     id: "2",
     title: "Criar landing page",
     description: "Design e desenvolvimento da página inicial",
-    priority: "medium",
-    assignee: "Maria Santos",
-    dueDate: "2024-01-20",
-    department: "marketing"
+    status: "in_progress" as const,
+    priority: "medium" as const,
+    company_id: "mock-company-id",
+    created_by: "mock-user-id",
+    assignee_id: "maria-santos-id",
+    due_date: "2024-01-20T00:00:00Z",
+    created_at: "2024-01-02T00:00:00Z",
+    updated_at: "2024-01-02T00:00:00Z",
+    estimated_hours: 16
   },
   {
     id: "3",
     title: "Revisar proposta comercial",
     description: "Análise e ajustes na proposta para cliente",
-    priority: "high",
-    assignee: "Pedro Lima",
-    dueDate: "2024-01-12",
-    department: "vendas"
+    status: "done" as const,
+    priority: "high" as const,
+    company_id: "mock-company-id",
+    created_by: "mock-user-id",
+    assignee_id: "pedro-lima-id",
+    due_date: "2024-01-12T00:00:00Z",
+    created_at: "2024-01-03T00:00:00Z",
+    updated_at: "2024-01-03T00:00:00Z",
+    estimated_hours: 4
   },
   {
     id: "4",
     title: "Configurar servidor",
     description: "Setup do ambiente de produção",
-    priority: "medium",
-    assignee: "Ana Costa",
-    dueDate: "2024-01-25",
-    department: "desenvolvimento"
+    status: "todo" as const,
+    priority: "medium" as const,
+    company_id: "mock-company-id",
+    created_by: "mock-user-id",
+    assignee_id: "ana-costa-id",
+    due_date: "2024-01-25T00:00:00Z",
+    created_at: "2024-01-04T00:00:00Z",
+    updated_at: "2024-01-04T00:00:00Z",
+    estimated_hours: 12
   }
 ];
 
@@ -64,45 +76,45 @@ export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) =
 
   const columns = [
     { id: "todo", title: "A Fazer", color: "border-slate-300" },
-    { id: "progress", title: "Em Progresso", color: "border-blue-300" },
+    { id: "in_progress", title: "Em Progresso", color: "border-blue-300" },
     { id: "done", title: "Concluído", color: "border-green-300" }
   ];
 
-  const getTasksByStatus = (status: string) => {
+  const getTasksByStatus = (status: 'todo' | 'in_progress' | 'done') => {
     let filteredTasks = tasks;
     
     if (departmentId && departmentId !== "all" && departmentId !== "user") {
-      filteredTasks = tasks.filter(task => task.department === departmentId);
+      // In a real implementation, you would filter by department
+      filteredTasks = tasks;
     }
     
     if (userId === "current") {
-      filteredTasks = tasks.filter(task => task.assignee === "João Silva");
+      // In a real implementation, you would filter by current user
+      filteredTasks = tasks;
     }
 
-    // Mock status - in real app this would come from database
-    const statusMap: { [key: string]: string[] } = {
-      todo: ["1", "4"],
-      progress: ["2"],
-      done: ["3"]
-    };
-
-    return filteredTasks.filter(task => statusMap[status]?.includes(task.id) || false);
+    return filteredTasks.filter(task => task.status === status);
   };
 
-  const handleDragStart = (taskId: string) => {
-    setDraggedTask(taskId);
+  const handleStatusChange = (taskId: string, newStatus: 'todo' | 'in_progress' | 'done') => {
+    setTasks(prevTasks => 
+      prevTasks.map(task => 
+        task.id === taskId 
+          ? { ...task, status: newStatus, updated_at: new Date().toISOString() }
+          : task
+      )
+    );
+    setDraggedTask(null);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const handleEdit = (task: Task) => {
+    console.log('Editing task:', task);
+    // In real implementation, this would open an edit dialog
   };
 
-  const handleDrop = (status: string) => {
-    if (draggedTask) {
-      // In real app, this would update the database
-      console.log(`Moving task ${draggedTask} to ${status}`);
-      setDraggedTask(null);
-    }
+  const handleDelete = (task: Task) => {
+    console.log('Deleting task:', task);
+    setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id));
   };
 
   return (
@@ -129,11 +141,13 @@ export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) =
           <TaskColumn
             key={column.id}
             title={column.title}
-            tasks={getTasksByStatus(column.id)}
-            onDragOver={handleDragOver}
-            onDrop={() => handleDrop(column.id)}
-            onDragStart={handleDragStart}
+            status={column.id as 'todo' | 'in_progress' | 'done'}
+            tasks={getTasksByStatus(column.id as 'todo' | 'in_progress' | 'done')}
+            onStatusChange={handleStatusChange}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
             borderColor={column.color}
+            draggedTaskId={draggedTask}
           />
         ))}
       </div>

@@ -10,13 +10,16 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Plus, Mail, CheckCircle, Clock, X, UserX } from 'lucide-react';
+import { Users, Plus, Mail, CheckCircle, Clock, X, UserCog, Shield } from 'lucide-react';
+import { UserPermissionsDialog } from '@/components/UserPermissionsDialog';
 
 export const UserManagement = () => {
   const { selectedCompany } = useCompanyContext();
   const { toast } = useToast();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
 
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers(selectedCompany?.id);
   const { data: invitations = [], isLoading: invitationsLoading } = useInvitations(selectedCompany?.id);
@@ -45,6 +48,11 @@ export const UserManagement = () => {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleManagePermissions = (user: any) => {
+    setSelectedUser(user);
+    setShowPermissionsDialog(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -146,6 +154,12 @@ export const UserManagement = () => {
                       <div>
                         <p className="font-medium">{user.full_name || 'Nome não informado'}</p>
                         <p className="text-sm text-slate-500">{user.email}</p>
+                        {user.user_roles && user.user_roles[0] && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <Shield className="w-3 h-3 text-slate-400" />
+                            <span className="text-xs text-slate-600">{user.user_roles[0].roles.name}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -155,11 +169,9 @@ export const UserManagement = () => {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        disabled={true}
-                        className="opacity-50 cursor-not-allowed"
+                        onClick={() => handleManagePermissions(user)}
                       >
-                        <UserX className="w-4 h-4" />
-                        <span className="ml-1 text-xs">(em breve)</span>
+                        <UserCog className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -213,6 +225,19 @@ export const UserManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialog de Permissões */}
+      {selectedUser && (
+        <UserPermissionsDialog
+          isOpen={showPermissionsDialog}
+          onClose={() => {
+            setShowPermissionsDialog(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+          companyId={selectedCompany.id}
+        />
+      )}
     </div>
   );
 };
