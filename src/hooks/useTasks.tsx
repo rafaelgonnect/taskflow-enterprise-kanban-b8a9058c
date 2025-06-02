@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -145,6 +144,8 @@ export function useCreateTask() {
       queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['company-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['public-department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['public-company-tasks'] });
     },
   });
 }

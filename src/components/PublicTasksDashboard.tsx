@@ -19,12 +19,14 @@ export const PublicTasksDashboard = ({ companyId }: PublicTasksDashboardProps) =
   const { data: companyTasks = [] } = usePublicCompanyTasks(companyId);
   const acceptTask = useAcceptPublicTask();
 
-  // Buscar tarefas de todos os departamentos do usuário
-  const departmentTasksQueries = departments.map(dept => 
-    usePublicDepartmentTasks(dept.id)
-  );
+  // Sempre chamar hooks da mesma forma - buscar tarefas de todos os departamentos
+  const allDepartmentTasksQueries = departments.map(dept => ({
+    departmentId: dept.id,
+    query: usePublicDepartmentTasks(dept.id)
+  }));
   
-  const allDepartmentTasks = departmentTasksQueries.reduce((acc, query) => {
+  // Combinar todas as tarefas departamentais
+  const allDepartmentTasks = allDepartmentTasksQueries.reduce((acc, { query }) => {
     if (query.data) {
       return [...acc, ...query.data];
     }

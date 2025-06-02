@@ -26,12 +26,12 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   
   const { data: departments = [] } = useDepartments(companyId);
-  const { data: tasks = [], isLoading } = useDepartmentTasks(selectedDepartmentId);
+  const { data: tasks = [], isLoading } = useDepartmentTasks(selectedDepartmentId || undefined);
   const createTask = useCreateTask();
 
-  // Filtrar apenas departamentos onde o usuário é membro ou gerente
+  // Filtrar departamentos onde o usuário é membro ou gerente
   const userDepartments = departments.filter(dept => 
-    dept.manager_id === user?.id // É gerente
+    dept.manager_id === user?.id // É gerente do departamento
     // Em uma implementação real, verificaríamos se é membro via department_members
   );
 
@@ -107,7 +107,7 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
               companyId={companyId}
               departmentId={selectedDepartmentId}
               trigger={
-                <Button onClick={() => setShowCreateDialog(true)}>
+                <Button>
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Tarefa Departamental
                 </Button>

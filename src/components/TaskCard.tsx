@@ -1,10 +1,13 @@
 
-import React from 'react';
-import { Calendar, User, AlertCircle, GripVertical, Paperclip, MessageSquare, History, Play, Pause, Clock } from "lucide-react";
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MoreVertical, Eye, Edit, Trash2, Calendar, Clock, User } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Task } from '@/hooks/useTasks';
+import { TaskDetailsDialog } from "./TaskDetailsDialog";
+import { useState } from "react";
 
 interface TaskCardProps {
   task: Task;
@@ -15,149 +18,119 @@ interface TaskCardProps {
   isDragging?: boolean;
 }
 
-export const TaskCard = ({ task, onStatusChange, onEdit, onDelete, onDetails, isDragging }: TaskCardProps) => {
-  const priorityColors = {
-    high: "bg-red-100 text-red-700 border-red-200",
-    medium: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    low: "bg-green-100 text-green-700 border-green-200"
-  };
-
-  const priorityLabels = {
-    high: "Alta",
-    medium: "Média",
-    low: "Baixa"
-  };
+export const TaskCard = ({ 
+  task, 
+  onStatusChange,
+  onEdit,
+  onDelete,
+  onDetails,
+  isDragging = false
+}: TaskCardProps) => {
+  const [showDetails, setShowDetails] = useState(false);
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', task.id);
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const formatTime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'bg-red-100 text-red-700 border-red-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'low': return 'bg-green-100 text-green-700 border-green-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'Alta';
+      case 'medium': return 'Média';
+      case 'low': return 'Baixa';
+      default: return priority;
+    }
   };
 
   return (
-    <div
-      draggable
-      onDragStart={handleDragStart}
-      className={`bg-white p-4 rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing group ${
-        isDragging ? 'opacity-50 rotate-2' : ''
-      } ${task.is_timer_running ? 'ring-2 ring-green-200 bg-green-50' : ''}`}
-    >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-start gap-2 flex-1">
-          <GripVertical className="w-4 h-4 text-slate-400 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <h4 
-            className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors flex-1 cursor-pointer"
-            onClick={() => onDetails(task)}
-          >
-            {task.title}
-          </h4>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className={`text-xs px-2 py-1 rounded border ${priorityColors[task.priority]}`}>
-            {priorityLabels[task.priority]}
-          </span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                <AlertCircle className="w-3 h-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
-              {task.status === 'todo' && (
-                <DropdownMenuItem onClick={() => onStatusChange(task.id, 'in_progress')}>
-                  Iniciar Tarefa
-                </DropdownMenuItem>
-              )}
-              {task.status === 'in_progress' && (
-                <>
-                  <DropdownMenuItem onClick={() => onStatusChange(task.id, 'done')}>
-                    Concluir Tarefa
+    <>
+      <Card
+        className={`cursor-move hover:shadow-md transition-all duration-200 ${
+          isDragging ? 'opacity-50 rotate-2 scale-105' : ''
+        }`}
+        draggable
+        onDragStart={handleDragStart}
+      >
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-start justify-between">
+              <h4 className="font-medium text-slate-900 line-clamp-2 flex-1">
+                {task.title}
+              </h4>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowDetails(true)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Detalhes
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onStatusChange(task.id, 'todo')}>
-                    Voltar para A Fazer
+                  <DropdownMenuItem onClick={() => onEdit(task)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar
                   </DropdownMenuItem>
-                </>
-              )}
-              {task.status === 'done' && (
-                <DropdownMenuItem onClick={() => onStatusChange(task.id, 'in_progress')}>
-                  Reabrir Tarefa
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={() => onDetails(task)}>
-                Ver Detalhes
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(task)}>
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(task)} className="text-red-600">
-                Excluir
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-      
-      {task.description && (
-        <p className="text-sm text-slate-600 mb-3 line-clamp-2">{task.description}</p>
-      )}
-      
-      <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
-        <div className="flex items-center gap-3">
-          {task.estimated_hours && (
-            <div className="flex items-center gap-1">
-              <AlertCircle size={12} />
-              <span>{task.estimated_hours}h est.</span>
+                  <DropdownMenuItem onClick={() => onDelete(task)} className="text-red-600">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          )}
-          <div className="flex items-center gap-1">
-            <Clock size={12} />
-            <span>{formatTime(task.total_time_minutes || 0)}</span>
-          </div>
-        </div>
-        {task.due_date && (
-          <div className="flex items-center gap-1">
-            <Calendar size={12} />
-            <span>{new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
-          </div>
-        )}
-      </div>
 
-      {/* Timer Status */}
-      {task.is_timer_running && (
-        <div className="flex items-center gap-1 mb-3 text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span>Timer ativo</span>
-        </div>
-      )}
+            {task.description && (
+              <p className="text-sm text-slate-600 line-clamp-2">{task.description}</p>
+            )}
 
-      {/* Indicadores de ações */}
-      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 text-xs text-slate-400">
-            <Paperclip size={12} />
-            <span>0</span>
+            <div className="flex items-center justify-between">
+              <Badge className={getPriorityColor(task.priority)}>
+                {getPriorityLabel(task.priority)}
+              </Badge>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-500">
+              {task.due_date && (
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  <span>{new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
+                </div>
+              )}
+              
+              {task.estimated_hours && (
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span>{task.estimated_hours}h estimado</span>
+                </div>
+              )}
+
+              {task.assignee_id && (
+                <div className="flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  <span>Atribuída</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1 text-xs text-slate-400">
-            <MessageSquare size={12} />
-            <span>0</span>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-slate-400">
-            <History size={12} />
-            <span>0</span>
-          </div>
-        </div>
-        
-        {task.is_timer_running ? (
-          <Pause className="w-4 h-4 text-green-600" />
-        ) : (
-          <Play className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-        )}
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+
+      <TaskDetailsDialog
+        task={task}
+        open={showDetails}
+        onOpenChange={setShowDetails}
+        companyId={task.company_id}
+      />
+    </>
   );
 };
