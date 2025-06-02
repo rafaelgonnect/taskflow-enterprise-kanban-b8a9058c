@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useRoadmapDocumentation, useDocumentationByType } from '@/hooks/useRoadmapDocumentation';
 import { useRoadmapSeeder } from '@/hooks/useRoadmapSeeder';
 import { DocumentationEditor } from './DocumentationEditor';
-import { DocumentationType } from '@/types/roadmap';
+import { DocumentationType, RoadmapDocumentation } from '@/types/roadmap';
 import { Plus, FileText, Database, Settings, TestTube, Code, BookOpen, RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCompanyContext } from '@/contexts/CompanyContext';
@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 export const DocumentationTab = () => {
   const [selectedType, setSelectedType] = useState<DocumentationType>('specs');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState<RoadmapDocumentation | undefined>(undefined);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const queryClient = useQueryClient();
@@ -25,36 +26,6 @@ export const DocumentationTab = () => {
 
   const { data: allDocs = [] } = useRoadmapDocumentation();
   const { data: typeDocs = [] } = useDocumentationByType(selectedType);
-
-  const docTypeIcons = {
-    specs: FileText,
-    notes: BookOpen,
-    sql: Database,
-    config: Settings,
-    test: TestTube,
-    context: Code,
-  };
-
-  const docTypeLabels = {
-    specs: 'Especificações Técnicas',
-    notes: 'Notas e Observações',
-    sql: 'Scripts SQL',
-    config: 'Configurações',
-    test: 'Testes',
-    context: 'Contexto para IA',
-  };
-
-  const getDocTypeColor = (type: DocumentationType) => {
-    const colors = {
-      specs: 'bg-blue-500',
-      notes: 'bg-green-500',
-      sql: 'bg-purple-500',
-      config: 'bg-orange-500',
-      test: 'bg-red-500',
-      context: 'bg-indigo-500',
-    };
-    return colors[type];
-  };
 
   // Helper function to safely parse tags
   const parseTags = (tags: any): string[] => {
@@ -99,6 +70,21 @@ export const DocumentationTab = () => {
     }
   };
 
+  const handleEditDocument = (document: RoadmapDocumentation) => {
+    setEditingDocument(document);
+    setIsEditorOpen(true);
+  };
+
+  const handleCreateNew = () => {
+    setEditingDocument(undefined);
+    setIsEditorOpen(true);
+  };
+
+  const handleCloseEditor = () => {
+    setIsEditorOpen(false);
+    setEditingDocument(undefined);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -118,7 +104,7 @@ export const DocumentationTab = () => {
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing || isSeeding ? 'animate-spin' : ''}`} />
             {isRefreshing || isSeeding ? 'Sincronizando...' : 'Sincronizar'}
           </Button>
-          <Button onClick={() => setIsEditorOpen(true)}>
+          <Button onClick={handleCreateNew}>
             <Plus className="w-4 h-4 mr-2" />
             Nova Documentação
           </Button>
@@ -222,9 +208,7 @@ export const DocumentationTab = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => {
-                          console.log('Editando documento:', doc.id);
-                        }}
+                        onClick={() => handleEditDocument(doc)}
                       >
                         Editar
                       </Button>
@@ -245,8 +229,9 @@ export const DocumentationTab = () => {
       {/* Documentation Editor Dialog */}
       <DocumentationEditor
         isOpen={isEditorOpen}
-        onClose={() => setIsEditorOpen(false)}
+        onClose={handleCloseEditor}
         docType={selectedType}
+        document={editingDocument}
       />
     </div>
   );
