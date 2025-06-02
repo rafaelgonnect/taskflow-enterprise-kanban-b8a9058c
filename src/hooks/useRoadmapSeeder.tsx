@@ -1,6 +1,6 @@
 
-import { useCreateRoadmapItem, useCreateDocumentation } from '@/hooks/useRoadmap';
-import { useCreateDocumentation as useCreateRoadmapDocumentation } from '@/hooks/useRoadmapDocumentation';
+import { useCreateRoadmapItem } from '@/hooks/useRoadmap';
+import { useCreateDocumentation } from '@/hooks/useRoadmapDocumentation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +11,7 @@ export function useRoadmapSeeder() {
   const { selectedCompany } = useCompanyContext();
   const { toast } = useToast();
   const createRoadmapItem = useCreateRoadmapItem();
-  const createDocumentation = useCreateRoadmapDocumentation();
+  const createDocumentation = useCreateDocumentation();
 
   const seedRoadmapData = async () => {
     if (!user || !selectedCompany?.id) {
