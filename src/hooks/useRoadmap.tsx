@@ -1,9 +1,8 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useCompanyContext } from '@/contexts/CompanyContext';
-import { RoadmapItem, RoadmapFilters } from '@/types/roadmap';
+import { RoadmapItem, RoadmapFilters, RoadmapCategory, RoadmapStatus, RoadmapPriority, ValidationStatus, RoadmapSource } from '@/types/roadmap';
 import { useToast } from '@/hooks/use-toast';
 
 export function useRoadmap(filters?: RoadmapFilters) {
@@ -67,9 +66,14 @@ export function useRoadmap(filters?: RoadmapFilters) {
 
       console.log('Itens do roadmap encontrados:', data?.length || 0);
 
-      // Transform data to match RoadmapItem interface
+      // Transform data to match RoadmapItem interface with proper type casting
       const transformedData: RoadmapItem[] = (data || []).map(item => ({
         ...item,
+        category: item.category as RoadmapCategory,
+        status: item.status as RoadmapStatus,
+        priority: item.priority as RoadmapPriority,
+        validation_status: (item.validation_status as ValidationStatus) || 'pending',
+        source: (item.source as RoadmapSource) || 'manual',
         test_criteria: Array.isArray(item.test_criteria) ? item.test_criteria : 
                       typeof item.test_criteria === 'string' ? JSON.parse(item.test_criteria) : [],
         dependencies: Array.isArray(item.dependencies) ? item.dependencies : 

@@ -1,191 +1,197 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { RoadmapConfigFile, DevelopmentContext, RoadmapItem, RoadmapDocumentation } from '@/types/roadmap';
+import { RoadmapItem, RoadmapDocumentation, DevelopmentContext, RoadmapCategory, RoadmapStatus, RoadmapPriority, ValidationStatus, RoadmapSource, DocumentationType, DocumentationFormat } from '@/types/roadmap';
 
 export class FileSync {
-  // Simular sistema de arquivos local para desenvolvimento
-  private static localStorage = {
-    'roadmap-config.json': null as RoadmapConfigFile | null,
-    'development-context.json': null as DevelopmentContext | null,
-  };
-
+  // Salvar configuração local (simulação)
   static async writeConfig(filename: string, data: any): Promise<void> {
-    // Em produção, isso seria salvo em arquivo
-    // Por agora, usar localStorage para simular
-    localStorage.setItem(`filesync_${filename}`, JSON.stringify(data));
-    console.log(`Arquivo ${filename} salvo localmente`);
-  }
-
-  static async readConfig(filename: string): Promise<any> {
-    // Em produção, isso leria do arquivo
-    // Por agora, usar localStorage
-    const data = localStorage.getItem(`filesync_${filename}`);
-    return data ? JSON.parse(data) : null;
-  }
-
-  static async syncToSupabase(companyId: string, filename: string, data: any): Promise<void> {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('Usuário não autenticado');
-
-      await supabase
-        .from('roadmap_configs')
-        .upsert({
-          company_id: companyId,
-          config_key: filename,
-          config_value: data,
-          description: `Arquivo de configuração: ${filename}`,
-          created_by: user.user.id,
-        });
-
-      console.log(`Dados sincronizados com Supabase: ${filename}`);
+      // Em uma implementação real, salvaria em localStorage ou IndexedDB
+      localStorage.setItem(`roadmap_${filename}`, JSON.stringify(data));
+      console.log(`Configuração ${filename} salva localmente`);
     } catch (error) {
-      console.error('Erro ao sincronizar com Supabase:', error);
+      console.error(`Erro ao salvar ${filename}:`, error);
       throw error;
     }
   }
 
-  static async loadFromSupabase(companyId: string, filename: string): Promise<any> {
+  // Sincronizar com Supabase
+  static async syncToSupabase(companyId: string, configKey: string, data: any): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('roadmap_configs')
+        .upsert({
+          company_id: companyId,
+          config_key: configKey,
+          config_value: data,
+          description: `Configuração do ${configKey}`,
+          created_by: (await supabase.auth.getUser()).data.user?.id || '',
+        });
+
+      if (error) throw error;
+      console.log(`Dados sincronizados para Supabase: ${configKey}`);
+    } catch (error) {
+      console.error(`Erro ao sincronizar ${configKey}:`, error);
+      throw error;
+    }
+  }
+
+  // Carregar do Supabase
+  static async loadFromSupabase(companyId: string, configKey: string): Promise<any> {
     try {
       const { data, error } = await supabase
         .from('roadmap_configs')
         .select('config_value')
         .eq('company_id', companyId)
-        .eq('config_key', filename)
+        .eq('config_key', configKey)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 é "no rows returned"
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         throw error;
       }
 
       return data?.config_value || null;
     } catch (error) {
-      console.error('Erro ao carregar do Supabase:', error);
+      console.error(`Erro ao carregar ${configKey}:`, error);
       return null;
     }
   }
 
+  // Exportar dados para arquivo
+  static async exportToFile(
+    companyId: string,
+    roadmapItems: any[],
+    documentation: any[]
+  ): Promise<void> {
+    try {
+      const exportData = {
+        timestamp: new Date().toISOString(),
+        company_id: companyId,
+        roadmap_items: roadmapItems,
+        documentation: documentation,
+        version: '1.0',
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json',
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `roadmap-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao exportar dados:', error);
+      throw error;
+    }
+  }
+
+  // Importar dados de arquivo
+  static async importFromFile(file: File): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target?.result as string);
+          resolve(data);
+        } catch (error) {
+          reject(new Error('Arquivo inválido'));
+        }
+      };
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsText(file);
+    });
+  }
+
+  // Gerar contexto para IA
   static generateContextForAI(
     context: DevelopmentContext,
     roadmapItems: RoadmapItem[],
     documentation: RoadmapDocumentation[]
   ): string {
+    // Transform roadmap items with proper type casting
+    const transformedItems: RoadmapItem[] = roadmapItems.map(item => ({
+      ...item,
+      category: item.category as RoadmapCategory,
+      status: item.status as RoadmapStatus,
+      priority: item.priority as RoadmapPriority,
+      validation_status: (item.validation_status as ValidationStatus) || 'pending',
+      source: (item.source as RoadmapSource) || 'manual',
+      test_criteria: Array.isArray(item.test_criteria) ? item.test_criteria : 
+                    typeof item.test_criteria === 'string' ? JSON.parse(item.test_criteria) : [],
+      dependencies: Array.isArray(item.dependencies) ? item.dependencies : 
+                   typeof item.dependencies === 'string' ? JSON.parse(item.dependencies) : [],
+      context_tags: Array.isArray(item.context_tags) ? item.context_tags : 
+                   typeof item.context_tags === 'string' ? JSON.parse(item.context_tags) : [],
+      test_results: typeof item.test_results === 'object' ? item.test_results : {}
+    }));
+
     const aiContext = {
       project_overview: {
         name: context.project_name,
         version: context.version,
         architecture: context.architecture,
-        current_sprint: context.current_sprint,
         team_size: context.team,
         tech_debt_level: context.tech_debt.level,
       },
-      development_status: {
-        total_features: roadmapItems.length,
-        completed_features: roadmapItems.filter(item => item.status === 'completed').length,
-        in_progress_features: roadmapItems.filter(item => item.status === 'in_progress').length,
-        planned_features: roadmapItems.filter(item => item.status === 'planned').length,
+      current_status: {
+        active_items: transformedItems.filter(item => ['in_progress', 'in_review'].includes(item.status)),
+        planned_items: transformedItems.filter(item => item.status === 'planned'),
+        completed_items: transformedItems.filter(item => item.status === 'completed'),
+        high_priority: transformedItems.filter(item => ['critical', 'high'].includes(item.priority)),
       },
-      priority_items: roadmapItems
-        .filter(item => item.priority === 'critical' || item.priority === 'high')
-        .map(item => ({
-          title: item.title,
-          description: item.description,
-          status: item.status,
-          priority: item.priority,
-          technical_specs: item.technical_specs,
-          dependencies: item.dependencies,
-        })),
-      documentation_summary: {
-        total_docs: documentation.length,
-        by_type: documentation.reduce((acc, doc) => {
-          acc[doc.doc_type] = (acc[doc.doc_type] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
+      development_context: {
+        current_sprint: context.current_sprint,
+        recent_changes: context.recent_changes,
+        priority_areas: context.tech_debt.priority_areas,
       },
-      recent_changes: context.recent_changes,
-      tech_debt_areas: context.tech_debt.priority_areas,
+      technical_documentation: documentation.filter(doc => 
+        ['specs', 'config', 'context'].includes(doc.doc_type)
+      ),
+      dependencies_and_risks: {
+        blocked_items: transformedItems.filter(item => 
+          item.dependencies && item.dependencies.length > 0
+        ),
+        validation_pending: transformedItems.filter(item => 
+          item.validation_status === 'pending'
+        ),
+      },
     };
 
-    return `
-# Contexto de Desenvolvimento - ${context.project_name}
-
-## Estado Atual do Projeto
-- **Versão:** ${context.version}
-- **Sprint Atual:** ${context.current_sprint.name} (${context.current_sprint.start_date} - ${context.current_sprint.end_date})
-- **Nível de Débito Técnico:** ${context.tech_debt.level}
-
-## Arquitetura
-- **Frontend:** ${context.architecture.frontend.join(', ')}
-- **Backend:** ${context.architecture.backend.join(', ')}
-- **Banco de Dados:** ${context.architecture.database}
-- **Deploy:** ${context.architecture.deployment}
-
-## Status de Desenvolvimento
-- **Total de Funcionalidades:** ${aiContext.development_status.total_features}
-- **Concluídas:** ${aiContext.development_status.completed_features}
-- **Em Progresso:** ${aiContext.development_status.in_progress_features}
-- **Planejadas:** ${aiContext.development_status.planned_features}
-
-## Itens Prioritários
-${aiContext.priority_items.map(item => `
-### ${item.title} (${item.priority})
-- **Status:** ${item.status}
-- **Descrição:** ${item.description}
-- **Especificações:** ${item.technical_specs || 'Não definidas'}
-- **Dependências:** ${item.dependencies?.join(', ') || 'Nenhuma'}
-`).join('\n')}
-
-## Documentação Disponível
-- **Total:** ${aiContext.documentation_summary.total_docs} documentos
-- **Por Tipo:** ${Object.entries(aiContext.documentation_summary.by_type).map(([type, count]) => `${type}: ${count}`).join(', ')}
-
-## Mudanças Recentes
-${context.recent_changes.map(change => `
-- **${change.date}:** ${change.description} (Impacto: ${change.impact})
-`).join('\n')}
-
-## Áreas de Débito Técnico
-${context.tech_debt.priority_areas.map(area => `- ${area}`).join('\n')}
-
----
-*Este contexto foi gerado automaticamente para auxiliar agentes de IA no desenvolvimento.*
-    `.trim();
+    return JSON.stringify(aiContext, null, 2);
   }
 
-  static async exportForAgent(companyId: string): Promise<string> {
+  // Criar backup automático
+  static async createBackup(companyId: string): Promise<void> {
     try {
-      // Carregar todos os dados necessários
-      const [configData, contextData] = await Promise.all([
-        this.loadFromSupabase(companyId, 'roadmap-config.json'),
-        this.loadFromSupabase(companyId, 'development-context.json'),
+      // Buscar todos os dados
+      const [roadmapData, configData, docData] = await Promise.all([
+        supabase.from('roadmap_items').select('*').eq('company_id', companyId),
+        supabase.from('roadmap_configs').select('*').eq('company_id', companyId),
+        supabase.from('roadmap_documentation').select('*').eq('company_id', companyId),
       ]);
 
-      // Buscar roadmap items
-      const { data: roadmapItems } = await supabase
-        .from('roadmap_items')
-        .select('*')
-        .eq('company_id', companyId);
-
-      // Buscar documentação
-      const { data: documentation } = await supabase
-        .from('roadmap_documentation')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('is_active', true);
-
-      const exportPackage = {
-        config: configData,
-        context: contextData,
-        roadmap_items: roadmapItems || [],
-        documentation: documentation || [],
-        ai_context: contextData ? this.generateContextForAI(contextData, roadmapItems || [], documentation || []) : null,
-        export_timestamp: new Date().toISOString(),
+      const backup = {
+        timestamp: new Date().toISOString(),
         company_id: companyId,
+        roadmap_items: roadmapData.data || [],
+        configs: configData.data || [],
+        documentation: docData.data || [],
       };
 
-      return JSON.stringify(exportPackage, null, 2);
+      // Salvar no localStorage como backup
+      localStorage.setItem(
+        `roadmap_backup_${companyId}`,
+        JSON.stringify(backup)
+      );
+
+      console.log('Backup criado com sucesso');
     } catch (error) {
-      console.error('Erro ao exportar dados para agente:', error);
+      console.error('Erro ao criar backup:', error);
       throw error;
     }
   }

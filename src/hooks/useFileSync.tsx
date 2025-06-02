@@ -4,7 +4,7 @@ import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useRoadmap } from './useRoadmap';
 import { useRoadmapDocumentation } from './useRoadmapDocumentation';
 import { FileSync } from '@/utils/fileSync';
-import { RoadmapConfigFile, DevelopmentContext } from '@/types/roadmap';
+import { RoadmapConfigFile, DevelopmentContext, RoadmapDocumentation, DocumentationType, DocumentationFormat } from '@/types/roadmap';
 
 export function useFileSync() {
   const { selectedCompany } = useCompanyContext();
@@ -77,7 +77,16 @@ export function useFileSync() {
   const generateAIContext = () => {
     if (!context) return '';
     
-    return FileSync.generateContextForAI(context, roadmapItems, documentation);
+    // Transform documentation with proper types
+    const transformedDocs: RoadmapDocumentation[] = documentation.map(doc => ({
+      ...doc,
+      doc_type: doc.doc_type as DocumentationType,
+      format: doc.format as DocumentationFormat,
+      tags: Array.isArray(doc.tags) ? doc.tags : 
+            typeof doc.tags === 'string' ? JSON.parse(doc.tags) : [],
+    }));
+    
+    return FileSync.generateContextForAI(context, roadmapItems, transformedDocs);
   };
 
   const exportData = () => {
