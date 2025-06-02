@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -77,7 +78,8 @@ export function usePersonalTasks(companyId?: string) {
       const tasks: Task[] = (data || []).map(task => ({
         ...task,
         status: task.status as 'todo' | 'in_progress' | 'done',
-        priority: task.priority as 'high' | 'medium' | 'low'
+        priority: task.priority as 'high' | 'medium' | 'low',
+        task_type: task.task_type as 'personal' | 'department' | 'company'
       }));
       
       return tasks;

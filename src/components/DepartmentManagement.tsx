@@ -1,7 +1,9 @@
+
 import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, Department } from '@/hooks/useDepartments';
 import { useCompanyUsers } from '@/hooks/useCompanyUsers';
+import { DepartmentMembersDialog } from './DepartmentMembersDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';

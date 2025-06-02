@@ -28,7 +28,8 @@ export function useDepartmentTasks(departmentId?: string) {
       const tasks: Task[] = (data || []).map(task => ({
         ...task,
         status: task.status as 'todo' | 'in_progress' | 'done',
-        priority: task.priority as 'high' | 'medium' | 'low'
+        priority: task.priority as 'high' | 'medium' | 'low',
+        task_type: task.task_type as 'personal' | 'department' | 'company'
       }));
       
       console.log('Tarefas departamentais encontradas:', tasks);
@@ -62,7 +63,8 @@ export function useCompanyTasks(companyId?: string) {
       const tasks: Task[] = (data || []).map(task => ({
         ...task,
         status: task.status as 'todo' | 'in_progress' | 'done',
-        priority: task.priority as 'high' | 'medium' | 'low'
+        priority: task.priority as 'high' | 'medium' | 'low',
+        task_type: task.task_type as 'personal' | 'department' | 'company'
       }));
       
       console.log('Tarefas empresariais encontradas:', tasks);
