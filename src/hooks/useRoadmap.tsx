@@ -14,7 +14,6 @@ export function useRoadmap(filters?: RoadmapFilters) {
     queryKey: ['roadmap', selectedCompany?.id, filters],
     queryFn: async () => {
       if (!user || !selectedCompany?.id) {
-        console.log('useRoadmap: user ou company não definidos');
         return [];
       }
 
@@ -26,22 +25,35 @@ export function useRoadmap(filters?: RoadmapFilters) {
         .eq('company_id', selectedCompany.id)
         .order('created_at', { ascending: false });
 
-      // Aplicar filtros
+      // Apply filters
       if (filters?.status?.length) {
         query = query.in('status', filters.status);
       }
+
       if (filters?.category?.length) {
         query = query.in('category', filters.category);
       }
+
       if (filters?.priority?.length) {
         query = query.in('priority', filters.priority);
       }
+
       if (filters?.version) {
         query = query.eq('version', filters.version);
       }
+
       if (filters?.assigned_to) {
         query = query.eq('assigned_to', filters.assigned_to);
       }
+
+      if (filters?.validation_status?.length) {
+        query = query.in('validation_status', filters.validation_status);
+      }
+
+      if (filters?.source?.length) {
+        query = query.in('source', filters.source);
+      }
+
       if (filters?.search) {
         query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
       }
@@ -49,12 +61,25 @@ export function useRoadmap(filters?: RoadmapFilters) {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Erro ao buscar roadmap:', error);
+        console.error('Erro ao buscar itens do roadmap:', error);
         throw error;
       }
 
       console.log('Itens do roadmap encontrados:', data?.length || 0);
-      return data || [];
+
+      // Transform data to match RoadmapItem interface
+      const transformedData: RoadmapItem[] = (data || []).map(item => ({
+        ...item,
+        test_criteria: Array.isArray(item.test_criteria) ? item.test_criteria : 
+                      typeof item.test_criteria === 'string' ? JSON.parse(item.test_criteria) : [],
+        dependencies: Array.isArray(item.dependencies) ? item.dependencies : 
+                     typeof item.dependencies === 'string' ? JSON.parse(item.dependencies) : [],
+        context_tags: Array.isArray(item.context_tags) ? item.context_tags : 
+                     typeof item.context_tags === 'string' ? JSON.parse(item.context_tags) : [],
+        test_results: typeof item.test_results === 'object' ? item.test_results : {}
+      }));
+
+      return transformedData;
     },
     enabled: !!user && !!selectedCompany?.id,
   });
@@ -87,7 +112,6 @@ export function useCreateRoadmapItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap'] });
-      queryClient.invalidateQueries({ queryKey: ['roadmap-stats'] });
       toast({
         title: 'Item criado',
         description: 'Item do roadmap criado com sucesso',
@@ -121,7 +145,6 @@ export function useUpdateRoadmapItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap'] });
-      queryClient.invalidateQueries({ queryKey: ['roadmap-stats'] });
       toast({
         title: 'Item atualizado',
         description: 'Item do roadmap atualizado com sucesso',
@@ -152,15 +175,14 @@ export function useDeleteRoadmapItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap'] });
-      queryClient.invalidateQueries({ queryKey: ['roadmap-stats'] });
       toast({
-        title: 'Item excluído',
-        description: 'Item do roadmap excluído com sucesso',
+        title: 'Item removido',
+        description: 'Item do roadmap removido com sucesso',
       });
     },
     onError: (error: any) => {
       toast({
-        title: 'Erro ao excluir item',
+        title: 'Erro ao remover item',
         description: error.message,
         variant: 'destructive',
       });

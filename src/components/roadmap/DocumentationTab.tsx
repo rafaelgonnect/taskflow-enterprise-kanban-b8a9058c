@@ -47,6 +47,20 @@ export const DocumentationTab = () => {
     return colors[type];
   };
 
+  // Helper function to safely parse tags
+  const parseTags = (tags: any): string[] => {
+    if (Array.isArray(tags)) return tags;
+    if (typeof tags === 'string') {
+      try {
+        const parsed = JSON.parse(tags);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -132,46 +146,50 @@ export const DocumentationTab = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {typeDocs.map((doc) => (
-                <div key={doc.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-medium">{doc.title}</h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="outline" className="text-xs">
-                          {doc.format}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          v{doc.version}
-                        </Badge>
-                        {doc.tags.map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
+              {typeDocs.map((doc) => {
+                const tags = parseTags(doc.tags);
+                
+                return (
+                  <div key={doc.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-medium">{doc.title}</h3>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            {doc.format}
                           </Badge>
-                        ))}
+                          <Badge variant="secondary" className="text-xs">
+                            v{doc.version}
+                          </Badge>
+                          {tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Criado em {new Date(doc.created_at).toLocaleDateString('pt-BR')}
+                        </p>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Criado em {new Date(doc.created_at).toLocaleDateString('pt-BR')}
-                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // TODO: Abrir editor com este documento
+                          console.log('Editando documento:', doc.id);
+                        }}
+                      >
+                        Editar
+                      </Button>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        // TODO: Abrir editor com este documento
-                        console.log('Editando documento:', doc.id);
-                      }}
-                    >
-                      Editar
-                    </Button>
+                    {doc.content && (
+                      <div className="mt-3 p-3 bg-gray-100 rounded text-sm">
+                        <p className="line-clamp-3">{doc.content.substring(0, 200)}...</p>
+                      </div>
+                    )}
                   </div>
-                  {doc.content && (
-                    <div className="mt-3 p-3 bg-gray-100 rounded text-sm">
-                      <p className="line-clamp-3">{doc.content.substring(0, 200)}...</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
