@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -36,7 +35,15 @@ const AVAILABLE_PERMISSIONS: Permission[] = [
   'deactivate_users',
   'manage_user_roles',
   'view_user_activity',
-  'view_audit_logs'
+  'view_audit_logs',
+  'create_personal_tasks',
+  'create_department_tasks',
+  'create_company_tasks',
+  'accept_public_tasks',
+  'view_task_analytics',
+  'create_departments',
+  'manage_department_members',
+  'view_department_analytics'
 ];
 
 const PERMISSION_LABELS: Record<Permission, string> = {
@@ -55,7 +62,15 @@ const PERMISSION_LABELS: Record<Permission, string> = {
   'deactivate_users': 'Desativar Usuários',
   'manage_user_roles': 'Gerenciar Papéis de Usuários',
   'view_user_activity': 'Ver Atividade de Usuários',
-  'view_audit_logs': 'Ver Logs de Auditoria'
+  'view_audit_logs': 'Ver Logs de Auditoria',
+  'create_personal_tasks': 'Criar Tarefas Pessoais',
+  'create_department_tasks': 'Criar Tarefas do Departamento',
+  'create_company_tasks': 'Criar Tarefas da Empresa',
+  'accept_public_tasks': 'Aceitar Tarefas Públicas',
+  'view_task_analytics': 'Ver Análises de Tarefas',
+  'create_departments': 'Criar Departamentos',
+  'manage_department_members': 'Gerenciar Membros do Departamento',
+  'view_department_analytics': 'Ver Análises do Departamento'
 };
 
 const ROLE_COLORS = [
