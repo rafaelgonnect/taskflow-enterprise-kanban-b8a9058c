@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CompanySettings from "./pages/CompanySettings";
 import UserManagement from "./pages/UserManagement";
+import RoleManagement from "./pages/RoleManagement";
 import DepartmentManagement from "./pages/DepartmentManagement";
 import Tasks from "./pages/Tasks";
 import InviteAccept from "./pages/InviteAccept";
@@ -55,6 +56,13 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <UserManagement />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/roles" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <RoleManagement />
                   </Layout>
                 </ProtectedRoute>
               } />
