@@ -18,18 +18,25 @@ export function useTaskHistory(taskId: string) {
   return useQuery({
     queryKey: ['task-history', taskId],
     queryFn: async () => {
+      console.log('Buscando histórico da tarefa:', taskId);
+      
       const { data, error } = await supabase
         .from('task_history')
         .select(`
           *,
-          profiles!task_history_changed_by_fkey(full_name)
+          profiles:changed_by(full_name)
         `)
         .eq('task_id', taskId)
         .order('changed_at', { ascending: false });
       
-      if (error) throw error;
+      console.log('Resultado do histórico:', { data, error });
       
-      return data.map(history => ({
+      if (error) {
+        console.error('Erro ao buscar histórico:', error);
+        throw error;
+      }
+      
+      return (data || []).map(history => ({
         ...history,
         user_name: history.profiles?.full_name || 'Sistema'
       })) as TaskHistory[];

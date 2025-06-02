@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -48,17 +48,17 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
   const [editCommentText, setEditCommentText] = useState('');
   const [timerDescription, setTimerDescription] = useState('');
   const [formData, setFormData] = useState({
-    title: task?.title || '',
-    description: task?.description || '',
-    priority: task?.priority || 'medium' as 'high' | 'medium' | 'low',
-    dueDate: task?.due_date ? task.due_date.split('T')[0] : '',
-    estimatedHours: task?.estimated_hours?.toString() || '',
+    title: '',
+    description: '',
+    priority: 'medium' as 'high' | 'medium' | 'low',
+    dueDate: '',
+    estimatedHours: '',
   });
 
   const updateTask = useUpdateTask();
-  const { data: attachments = [] } = useTaskAttachments(task?.id || '');
-  const { data: comments = [] } = useTaskComments(task?.id || '');
-  const { data: history = [] } = useTaskHistory(task?.id || '');
+  const { data: attachments = [], refetch: refetchAttachments } = useTaskAttachments(task?.id || '');
+  const { data: comments = [], refetch: refetchComments } = useTaskComments(task?.id || '');
+  const { data: history = [], refetch: refetchHistory } = useTaskHistory(task?.id || '');
   const uploadAttachment = useUploadAttachment();
   const deleteAttachment = useDeleteAttachment();
   const createComment = useCreateComment();
@@ -66,6 +66,28 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
   const deleteComment = useDeleteComment();
   const startTimer = useStartTimer();
   const stopTimer = useStopTimer();
+
+  // Atualizar formData quando task mudar
+  useEffect(() => {
+    if (task) {
+      setFormData({
+        title: task.title,
+        description: task.description || '',
+        priority: task.priority,
+        dueDate: task.due_date ? task.due_date.split('T')[0] : '',
+        estimatedHours: task.estimated_hours?.toString() || '',
+      });
+    }
+  }, [task]);
+
+  // Recarregar dados quando necessário
+  useEffect(() => {
+    if (task?.id && isOpen) {
+      refetchAttachments();
+      refetchComments();
+      refetchHistory();
+    }
+  }, [task?.id, isOpen, refetchAttachments, refetchComments, refetchHistory]);
 
   if (!task) return null;
 

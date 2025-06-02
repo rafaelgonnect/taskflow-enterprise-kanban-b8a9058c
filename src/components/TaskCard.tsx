@@ -135,20 +135,20 @@ export const TaskCard = ({ task, onStatusChange, onEdit, onDelete, onDetails, is
         </div>
       )}
 
-      {/* Indicadores de anexos, comentários e histórico */}
+      {/* Indicadores de ações */}
       <div className="flex items-center justify-between pt-2 border-t border-slate-100">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 text-xs text-slate-400">
             <Paperclip size={12} />
-            <span>{task.attachments?.length || 0}</span>
+            <span>0</span>
           </div>
           <div className="flex items-center gap-1 text-xs text-slate-400">
             <MessageSquare size={12} />
-            <span>{task.comments?.length || 0}</span>
+            <span>0</span>
           </div>
           <div className="flex items-center gap-1 text-xs text-slate-400">
             <History size={12} />
-            <span>{task.history?.length || 0}</span>
+            <span>0</span>
           </div>
         </div>
         

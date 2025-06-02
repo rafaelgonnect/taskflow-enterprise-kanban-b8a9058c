@@ -17,18 +17,25 @@ export function useTaskComments(taskId: string) {
   return useQuery({
     queryKey: ['task-comments', taskId],
     queryFn: async () => {
+      console.log('Buscando comentários da tarefa:', taskId);
+      
       const { data, error } = await supabase
         .from('task_comments')
         .select(`
           *,
-          profiles!task_comments_created_by_fkey(full_name)
+          profiles:created_by(full_name)
         `)
         .eq('task_id', taskId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      console.log('Resultado dos comentários:', { data, error });
       
-      return data.map(comment => ({
+      if (error) {
+        console.error('Erro ao buscar comentários:', error);
+        throw error;
+      }
+      
+      return (data || []).map(comment => ({
         ...comment,
         user_name: comment.profiles?.full_name || 'Usuário desconhecido'
       })) as TaskComment[];
@@ -45,6 +52,8 @@ export function useCreateComment() {
     mutationFn: async ({ taskId, content }: { taskId: string; content: string }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
+      console.log('Criando comentário:', { taskId, content });
+      
       const { data, error } = await supabase
         .from('task_comments')
         .insert({
@@ -55,7 +64,10 @@ export function useCreateComment() {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao criar comentário:', error);
+        throw error;
+      }
 
       // Criar entrada no histórico para o comentário
       await supabase
@@ -67,6 +79,7 @@ export function useCreateComment() {
           changed_by: user.id,
         });
       
+      console.log('Comentário criado com sucesso:', data);
       return data;
     },
     onSuccess: (_, variables) => {
@@ -81,6 +94,8 @@ export function useUpdateComment() {
   
   return useMutation({
     mutationFn: async ({ id, content, taskId }: { id: string; content: string; taskId: string }) => {
+      console.log('Atualizando comentário:', { id, content });
+      
       const { data, error } = await supabase
         .from('task_comments')
         .update({ content, updated_at: new Date().toISOString() })
@@ -88,7 +103,12 @@ export function useUpdateComment() {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao atualizar comentário:', error);
+        throw error;
+      }
+      
+      console.log('Comentário atualizado com sucesso:', data);
       return data;
     },
     onSuccess: (_, variables) => {
@@ -102,12 +122,19 @@ export function useDeleteComment() {
   
   return useMutation({
     mutationFn: async ({ id, taskId }: { id: string; taskId: string }) => {
+      console.log('Deletando comentário:', { id });
+      
       const { error } = await supabase
         .from('task_comments')
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao deletar comentário:', error);
+        throw error;
+      }
+      
+      console.log('Comentário deletado com sucesso');
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['task-comments', variables.taskId] });

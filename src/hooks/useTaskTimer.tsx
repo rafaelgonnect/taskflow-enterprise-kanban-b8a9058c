@@ -11,6 +11,7 @@ export function useStartTimer() {
     mutationFn: async ({ taskId, companyId }: { taskId: string; companyId: string }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
+      console.log('Iniciando timer:', { taskId, userId: user.id });
       const now = new Date().toISOString();
       
       // Atualizar a tarefa para indicar que o timer está rodando
@@ -23,7 +24,10 @@ export function useStartTimer() {
         .eq('id', taskId)
         .eq('company_id', companyId);
       
-      if (taskError) throw taskError;
+      if (taskError) {
+        console.error('Erro ao atualizar tarefa:', taskError);
+        throw taskError;
+      }
       
       // Criar novo log de tempo
       const { data, error } = await supabase
@@ -36,7 +40,10 @@ export function useStartTimer() {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao criar log de tempo:', error);
+        throw error;
+      }
 
       // Criar entrada no histórico para timer iniciado
       await supabase
@@ -48,6 +55,7 @@ export function useStartTimer() {
           changed_by: user.id,
         });
       
+      console.log('Timer iniciado com sucesso:', data);
       return data;
     },
     onSuccess: (_, variables) => {
@@ -65,6 +73,7 @@ export function useStopTimer() {
     mutationFn: async ({ taskId, companyId, description }: { taskId: string; companyId: string; description?: string }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
+      console.log('Parando timer:', { taskId, userId: user.id });
       const now = new Date().toISOString();
       
       // Buscar o log de tempo mais recente não finalizado
@@ -78,7 +87,10 @@ export function useStopTimer() {
         .limit(1)
         .single();
       
-      if (timeLogError) throw timeLogError;
+      if (timeLogError) {
+        console.error('Erro ao buscar log de tempo:', timeLogError);
+        throw timeLogError;
+      }
       
       // Calcular duração em minutos
       const startTime = new Date(timeLog.started_at);
@@ -95,7 +107,10 @@ export function useStopTimer() {
         })
         .eq('id', timeLog.id);
       
-      if (updateLogError) throw updateLogError;
+      if (updateLogError) {
+        console.error('Erro ao atualizar log:', updateLogError);
+        throw updateLogError;
+      }
       
       // Calcular tempo total
       const { data: totalTimeResult } = await supabase
@@ -112,7 +127,10 @@ export function useStopTimer() {
         .eq('id', taskId)
         .eq('company_id', companyId);
       
-      if (taskError) throw taskError;
+      if (taskError) {
+        console.error('Erro ao atualizar tarefa:', taskError);
+        throw taskError;
+      }
 
       // Criar entrada no histórico para timer pausado
       await supabase
@@ -124,6 +142,7 @@ export function useStopTimer() {
           changed_by: user.id,
         });
       
+      console.log('Timer pausado com sucesso');
       return { durationMinutes, totalTime: totalTimeResult || 0 };
     },
     onSuccess: (_, variables) => {

@@ -19,13 +19,21 @@ export function useTaskAttachments(taskId: string) {
   return useQuery({
     queryKey: ['task-attachments', taskId],
     queryFn: async () => {
+      console.log('Buscando anexos da tarefa:', taskId);
+      
       const { data, error } = await supabase
         .from('task_attachments')
         .select('*')
         .eq('task_id', taskId)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      console.log('Resultado dos anexos:', { data, error });
+      
+      if (error) {
+        console.error('Erro ao buscar anexos:', error);
+        throw error;
+      }
+      
       return data as TaskAttachment[];
     },
     enabled: !!taskId,
@@ -40,6 +48,8 @@ export function useUploadAttachment() {
     mutationFn: async ({ taskId, file }: { taskId: string; file: File }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
+      console.log('Fazendo upload do anexo:', { taskId, fileName: file.name });
+      
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${taskId}/${Date.now()}.${fileExt}`;
       
@@ -48,7 +58,10 @@ export function useUploadAttachment() {
         .from('task-attachments')
         .upload(fileName, file);
       
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Erro no upload:', uploadError);
+        throw uploadError;
+      }
       
       // Obter URL pública do arquivo
       const { data: { publicUrl } } = supabase.storage
@@ -69,7 +82,10 @@ export function useUploadAttachment() {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao salvar anexo:', error);
+        throw error;
+      }
 
       // Criar entrada no histórico para o anexo
       await supabase
@@ -81,6 +97,7 @@ export function useUploadAttachment() {
           changed_by: user.id,
         });
       
+      console.log('Anexo salvo com sucesso:', data);
       return data;
     },
     onSuccess: (_, variables) => {
@@ -95,6 +112,8 @@ export function useDeleteAttachment() {
   
   return useMutation({
     mutationFn: async ({ id, fileName, taskId }: { id: string; fileName: string; taskId: string }) => {
+      console.log('Deletando anexo:', { id, fileName });
+      
       // Deletar arquivo do storage
       const { error: storageError } = await supabase.storage
         .from('task-attachments')
@@ -108,7 +127,12 @@ export function useDeleteAttachment() {
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao deletar anexo:', error);
+        throw error;
+      }
+      
+      console.log('Anexo deletado com sucesso');
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['task-attachments', variables.taskId] });
