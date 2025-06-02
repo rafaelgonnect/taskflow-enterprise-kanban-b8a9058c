@@ -49,6 +49,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const createProfileIfNeeded = async (user: User) => {
+    try {
+      console.log('Verificando se perfil existe para:', user.email);
+      
+      // Primeiro verificar se já existe
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('Erro ao verificar perfil existente:', checkError);
+        return null;
+      }
+      
+      if (existingProfile) {
+        console.log('Perfil já existe:', existingProfile);
+        return existingProfile;
+      }
+      
+      // Se não existe, criar
+      console.log('Criando perfil para usuário:', user.id);
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email || '',
+          full_name: user.user_metadata?.full_name || 'Usuário',
+          user_type: 'employee'
+        })
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('Erro ao criar perfil:', createError);
+        return null;
+      }
+      
+      console.log('Perfil criado com sucesso:', newProfile);
+      return newProfile;
+      
+    } catch (err) {
+      console.error('Erro inesperado ao criar perfil:', err);
+      return null;
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -62,16 +110,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user && isMounted) {
-        // Usar setTimeout para evitar conflitos
-        setTimeout(async () => {
-          if (isMounted) {
-            const profileData = await fetchProfile(session.user.id);
+        // Para novos usuários (signup), criar perfil se necessário
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setTimeout(async () => {
             if (isMounted) {
-              setProfile(profileData);
-              setLoading(false);
+              const profileData = await createProfileIfNeeded(session.user);
+              if (isMounted) {
+                setProfile(profileData);
+                setLoading(false);
+              }
             }
-          }
-        }, 0);
+          }, 0);
+        } else {
+          // Para outros eventos, apenas buscar perfil
+          setTimeout(async () => {
+            if (isMounted) {
+              const profileData = await fetchProfile(session.user.id);
+              if (isMounted) {
+                setProfile(profileData);
+                setLoading(false);
+              }
+            }
+          }, 0);
+        }
       } else {
         setProfile(null);
         setLoading(false);
@@ -97,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(session);
           setUser(session.user);
           
-          const profileData = await fetchProfile(session.user.id);
+          const profileData = await createProfileIfNeeded(session.user);
           if (isMounted) {
             setProfile(profileData);
           }
