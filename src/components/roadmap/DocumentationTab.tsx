@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,36 @@ export const DocumentationTab = () => {
 
   const { data: allDocs = [] } = useRoadmapDocumentation();
   const { data: typeDocs = [] } = useDocumentationByType(selectedType);
+
+  const docTypeIcons = {
+    specs: FileText,
+    notes: BookOpen,
+    sql: Database,
+    config: Settings,
+    test: TestTube,
+    context: Code,
+  };
+
+  const docTypeLabels = {
+    specs: 'Especificações Técnicas',
+    notes: 'Notas e Observações',
+    sql: 'Scripts SQL',
+    config: 'Configurações',
+    test: 'Testes',
+    context: 'Contexto para IA',
+  };
+
+  const getDocTypeColor = (type: DocumentationType) => {
+    const colors = {
+      specs: 'bg-blue-500',
+      notes: 'bg-green-500',
+      sql: 'bg-purple-500',
+      config: 'bg-orange-500',
+      test: 'bg-red-500',
+      context: 'bg-indigo-500',
+    };
+    return colors[type];
+  };
 
   // Helper function to safely parse tags
   const parseTags = (tags: any): string[] => {
@@ -208,7 +239,7 @@ export const DocumentationTab = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleEditDocument(doc)}
+                        onClick={() => handleEditDocument(doc as RoadmapDocumentation)}
                       >
                         Editar
                       </Button>
