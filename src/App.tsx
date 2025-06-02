@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import CompanySettings from "./pages/CompanySettings";
 import UserManagement from "./pages/UserManagement";
 import DepartmentManagement from "./pages/DepartmentManagement";
+import Tasks from "./pages/Tasks";
 import InviteAccept from "./pages/InviteAccept";
 import NotFound from "./pages/NotFound";
 
@@ -61,6 +62,13 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <DepartmentManagement />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/tasks" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Tasks />
                   </Layout>
                 </ProtectedRoute>
               } />

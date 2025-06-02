@@ -113,7 +113,7 @@ export const DepartmentManagement = () => {
     setFormData({
       name: department.name,
       description: department.description || '',
-      managerId: department.manager_id || '',
+      managerId: department.manager_id || 'no-manager',
     });
   };
 
@@ -278,41 +278,4 @@ export const DepartmentManagement = () => {
       )}
     </div>
   );
-};
-
-const handleDeleteDepartment = async (department: Department) => {
-  if (!selectedCompany) return;
-
-  try {
-    await deleteDepartment.mutateAsync({
-      id: department.id,
-      companyId: selectedCompany.id,
-    });
-
-    toast({
-      title: 'Departamento excluído!',
-      description: `Departamento ${department.name} excluído com sucesso`,
-    });
-  } catch (error: any) {
-    toast({
-      title: 'Erro ao excluir departamento',
-      description: error.message,
-      variant: 'destructive',
-    });
-  }
-};
-
-const openEditDialog = (department: Department) => {
-  setEditingDepartment(department);
-  setFormData({
-    name: department.name,
-    description: department.description || '',
-    managerId: department.manager_id || 'no-manager',
-  });
-};
-
-const resetForm = () => {
-  setFormData({ name: '', description: '', managerId: '' });
-  setEditingDepartment(null);
-  setShowCreateDialog(false);
 };

@@ -1,101 +1,65 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
-import { useInvitations, useCreateInvitation, Invitation } from '@/hooks/useInvitations';
-import { useCompanyUsers, useUpdateUserRole, useToggleUserStatus } from '@/hooks/useCompanyUsers';
+import { useCompanyUsers, useUpdateUserRole, CompanyUser } from '@/hooks/useCompanyUsers';
+import { useRoles } from '@/hooks/useRoles';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { UserPermissionsDialog } from './UserPermissionsDialog';
-import { Mail, Users, UserPlus, Shield, Clock, Check, X, Copy, MessageCircle, MoreVertical, Settings, UserCog } from 'lucide-react';
+import { Users, Plus, Edit, MoreVertical, UserCheck, Clock } from 'lucide-react';
 
 export const UserManagement = () => {
   const { selectedCompany } = useCompanyContext();
   const { toast } = useToast();
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState<CompanyUser | null>(null);
+  const [selectedRole, setSelectedRole] = useState('');
 
-  const { data: invitations = [], isLoading: invitationsLoading } = useInvitations(selectedCompany?.id);
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers(selectedCompany?.id);
-  const createInvitation = useCreateInvitation();
-  const toggleUserStatus = useToggleUserStatus();
+  const { data: roles = [], isLoading: rolesLoading } = useRoles(selectedCompany?.id);
+  const updateUserRole = useUpdateUserRole();
 
-  // Debug logs
-  useEffect(() => {
-    console.log('UserManagement - selectedCompany:', selectedCompany);
-    console.log('UserManagement - users:', users);
-    console.log('UserManagement - usersLoading:', usersLoading);
-  }, [selectedCompany, users, usersLoading]);
-
-  const handleInviteUser = async () => {
-    if (!selectedCompany || !inviteEmail.trim()) return;
+  const handleUpdateUserRole = async () => {
+    if (!selectedCompany || !editingUser || !selectedRole) return;
 
     try {
-      const invitation = await createInvitation.mutateAsync({
-        email: inviteEmail,
+      await updateUserRole.mutateAsync({
+        userId: editingUser.id,
         companyId: selectedCompany.id,
+        roleId: selectedRole,
       });
 
       toast({
-        title: 'Convite criado!',
-        description: `Convite criado para ${inviteEmail}. Código: ${invitation.invite_code}`,
+        title: 'Papel atualizado!',
+        description: `Papel do usuário ${editingUser.full_name} atualizado com sucesso`,
       });
 
-      setInviteEmail('');
-      setShowInviteDialog(false);
+      setEditingUser(null);
+      setSelectedRole('');
     } catch (error: any) {
       toast({
-        title: 'Erro ao criar convite',
+        title: 'Erro ao atualizar papel',
         description: error.message,
         variant: 'destructive',
       });
     }
   };
 
-  const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
-    if (!selectedCompany) return;
-
-    try {
-      await toggleUserStatus.mutateAsync({
-        userId,
-        companyId: selectedCompany.id,
-        isActive: !currentStatus,
-      });
-
-      toast({
-        title: 'Status atualizado',
-        description: `Usuário ${!currentStatus ? 'ativado' : 'desativado'} com sucesso`,
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao atualizar status',
-        description: error.message,
-        variant: 'destructive',
-      });
+  const openEditDialog = (user: CompanyUser) => {
+    setEditingUser(user);
+    const userRole = user.user_roles?.[0]?.roles;
+    if (userRole) {
+      const role = roles.find(r => r.name === userRole.name);
+      setSelectedRole(role?.id || '');
     }
   };
 
-  const handleManagePermissions = (user: any) => {
-    setSelectedUser(user);
-    setShowPermissionsDialog(true);
-  };
-
-  const copyToClipboard = (text: string, type: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: 'Copiado!',
-      description: `${type} copiado para a área de transferência`,
-    });
-  };
-
-  const openWhatsApp = (whatsappLink: string) => {
-    window.open(whatsappLink, '_blank');
+  const resetForm = () => {
+    setEditingUser(null);
+    setSelectedRole('');
   };
 
   if (!selectedCompany) {
@@ -111,268 +75,135 @@ export const UserManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Gestão de Usuários</h1>
-          <p className="text-slate-600">Gerencie usuários e convites da empresa {selectedCompany.name}</p>
-          <p className="text-xs text-slate-500 mt-1">
-            Company ID: {selectedCompany.id} | Usuários encontrados: {users.length}
-          </p>
+          <p className="text-slate-600">Gerencie usuários da empresa {selectedCompany.name}</p>
         </div>
 
-        <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="w-4 h-4 mr-2" />
-              Convidar Usuário
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Convidar Novo Usuário</DialogTitle>
-              <DialogDescription>
-                Crie um convite para um novo usuário se juntar à empresa.
-              </DialogDescription>
-            </DialogHeader>
+        <Button disabled className="opacity-50 cursor-not-allowed">
+          <Plus className="w-4 h-4 mr-2" />
+          Convidar Usuário <span className="ml-1 text-xs">(em breve)</span>
+        </Button>
+      </div>
+
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && resetForm()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gerenciar Usuário</DialogTitle>
+            <DialogDescription>
+              Edite as permissões e papel do usuário na empresa
+            </DialogDescription>
+          </DialogHeader>
+          {editingUser && (
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium">Email do usuário</label>
-                <Input
-                  type="email"
-                  placeholder="usuario@exemplo.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                />
+                <label className="text-sm font-medium">Usuário</label>
+                <div className="p-3 bg-slate-50 rounded-md">
+                  <p className="font-medium">{editingUser.full_name}</p>
+                  <p className="text-sm text-slate-600">{editingUser.email}</p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Papel na empresa</label>
+                <Select value={selectedRole} onValueChange={setSelectedRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um papel" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rolesLoading ? (
+                      <SelectItem value="loading" disabled>Carregando papéis...</SelectItem>
+                    ) : (
+                      roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.name}
+                          {role.description && (
+                            <span className="text-slate-500 ml-2">- {role.description}</span>
+                          )}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+                <Button variant="outline" onClick={resetForm}>
                   Cancelar
                 </Button>
                 <Button 
-                  onClick={handleInviteUser}
-                  disabled={!inviteEmail.trim() || createInvitation.isPending}
+                  onClick={handleUpdateUserRole}
+                  disabled={!selectedRole || updateUserRole.isPending}
                 >
-                  {createInvitation.isPending ? 'Criando...' : 'Criar Convite'}
+                  {updateUserRole.isPending ? 'Salvando...' : 'Salvar Alterações'}
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Tabs defaultValue="users" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Usuários Ativos ({users.length})
-          </TabsTrigger>
-          <TabsTrigger value="invitations" className="flex items-center gap-2">
-            <Mail className="w-4 h-4" />
-            Convites ({invitations.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="users" className="space-y-4">
-          {usersLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-slate-600">Carregando usuários...</p>
-            </div>
-          ) : users.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p className="text-slate-600 mb-2">Nenhum usuário encontrado</p>
-                <p className="text-xs text-slate-500">
-                  Debug: Company ID = {selectedCompany.id}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {users.map((user: any) => (
-                <Card key={user.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-medium text-slate-900">{user.full_name}</h3>
-                          <Badge variant={user.user_type === 'company_owner' ? 'default' : 'secondary'}>
-                            {user.user_type === 'company_owner' ? 'Proprietário' : 'Funcionário'}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-slate-600 mb-3">{user.email}</p>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {user.user_roles.map((ur: any, index: number) => (
-                            <Badge key={index} variant="outline">
-                              <Shield className="w-3 h-3 mr-1" />
-                              {ur.roles.name}
-                            </Badge>
-                          ))}
-                          <Badge variant={user.user_companies[0]?.is_active ? 'default' : 'destructive'}>
-                            {user.user_companies[0]?.is_active ? 'Ativo' : 'Inativo'}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleManagePermissions(user)}
-                        >
-                          <UserCog className="w-4 h-4 mr-2" />
-                          Gerenciar
-                        </Button>
-                        
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => handleToggleUserStatus(user.id, user.user_companies[0]?.is_active)}
-                            >
-                              {user.user_companies[0]?.is_active ? 'Desativar' : 'Ativar'} Usuário
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
           )}
-        </TabsContent>
+        </DialogContent>
+      </Dialog>
 
-        <TabsContent value="invitations" className="space-y-4">
-          {invitationsLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-slate-600">Carregando convites...</p>
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {invitations.map((invitation) => (
-                <Card key={invitation.id}>
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium text-slate-900">{invitation.email}</h3>
-                          <p className="text-sm text-slate-600">
-                            Convidado por {invitation.invited_by_profile?.full_name}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Badge 
-                              variant={
-                                invitation.status === 'pending' ? 'default' :
-                                invitation.status === 'accepted' ? 'secondary' : 'destructive'
-                              }
-                            >
-                              {invitation.status === 'pending' && <Clock className="w-3 h-3 mr-1" />}
-                              {invitation.status === 'accepted' && <Check className="w-3 h-3 mr-1" />}
-                              {invitation.status === 'expired' && <X className="w-3 h-3 mr-1" />}
-                              {invitation.status === 'pending' ? 'Pendente' :
-                               invitation.status === 'accepted' ? 'Aceito' : 'Expirado'}
-                            </Badge>
-                            <span className="text-xs text-slate-500">
-                              Expira em {new Date(invitation.expires_at).toLocaleDateString('pt-BR')}
-                            </span>
-                          </div>
-                        </div>
+      {usersLoading ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-slate-600">Carregando usuários...</p>
+        </div>
+      ) : users.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <Users className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+            <p className="text-slate-600 mb-2">Nenhum usuário encontrado</p>
+            <p className="text-sm text-slate-500">Convide usuários para começar</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {users.map((user) => (
+            <Card key={user.id}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="font-medium text-slate-900">{user.full_name}</h3>
+                      <Badge variant="outline">{user.email}</Badge>
+                      {user.user_roles?.[0]?.roles && (
+                        <Badge variant="secondary">
+                          {user.user_roles[0].roles.name}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-slate-500">
+                      <div className="flex items-center gap-1">
+                        <UserCheck className="w-4 h-4" />
+                        <span>Tipo: {user.user_type === 'company_owner' ? 'Proprietário' : 'Funcionário'}</span>
                       </div>
-
-                      {invitation.status === 'pending' && (
-                        <div className="border-t pt-4 space-y-3">
-                          <div>
-                            <label className="text-sm font-medium text-slate-700">Código do Convite:</label>
-                            <div className="flex items-center gap-2 mt-1">
-                              <code className="bg-slate-100 px-2 py-1 rounded text-sm font-mono">
-                                {invitation.invite_code}
-                              </code>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => copyToClipboard(invitation.invite_code, 'Código do convite')}
-                              >
-                                <Copy className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="text-sm font-medium text-slate-700">Link de Convite:</label>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Input
-                                readOnly
-                                value={`${window.location.origin}/invite/${invitation.invite_code}`}
-                                className="text-xs"
-                              />
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => copyToClipboard(
-                                  `${window.location.origin}/invite/${invitation.invite_code}`, 
-                                  'Link do convite'
-                                )}
-                              >
-                                <Copy className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </div>
-
-                          {invitation.whatsapp_link && (
-                            <div>
-                              <label className="text-sm font-medium text-slate-700">Compartilhar no WhatsApp:</label>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  className="text-green-600"
-                                  onClick={() => openWhatsApp(invitation.whatsapp_link!)}
-                                >
-                                  <MessageCircle className="w-3 h-3 mr-1" />
-                                  Abrir WhatsApp
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  onClick={() => copyToClipboard(invitation.whatsapp_link!, 'Link do WhatsApp')}
-                                >
-                                  <Copy className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          )}
+                      {user.user_companies?.[0]?.joined_at && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          <span>Desde {new Date(user.user_companies[0].joined_at).toLocaleDateString('pt-BR')}</span>
                         </div>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {invitations.length === 0 && (
-                <Card>
-                  <CardContent className="p-6 text-center">
-                    <p className="text-slate-600">Nenhum convite encontrado</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      {/* Dialog de Permissões */}
-      {selectedUser && (
-        <UserPermissionsDialog
-          isOpen={showPermissionsDialog}
-          onClose={() => {
-            setShowPermissionsDialog(false);
-            setSelectedUser(null);
-          }}
-          user={selectedUser}
-          companyId={selectedCompany.id}
-        />
+                  </div>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Gerenciar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
+                        <Users className="w-4 h-4 mr-2" />
+                        Desativar (em breve)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -12,6 +12,7 @@ import {
   Users, 
   Settings,
   Building,
+  CheckSquare,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -28,6 +29,11 @@ export const Sidebar = () => {
       title: 'Dashboard',
       icon: Home,
       path: '/',
+    },
+    {
+      title: 'Tarefas',
+      icon: CheckSquare,
+      path: '/tasks',
     },
     {
       title: 'Usuários',
