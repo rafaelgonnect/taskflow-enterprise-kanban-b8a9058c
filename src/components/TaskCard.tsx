@@ -14,7 +14,7 @@ interface TaskCardProps {
   onStatusChange: (taskId: string, newStatus: 'todo' | 'in_progress' | 'done') => void;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
-  onDetails: (task: Task) => void;
+  onDetails?: (task: Task) => void;
   isDragging?: boolean;
 }
 
@@ -31,6 +31,14 @@ export const TaskCard = ({
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', task.id);
     e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDetailsClick = () => {
+    if (onDetails) {
+      onDetails(task);
+    } else {
+      setShowDetails(true);
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -63,7 +71,10 @@ export const TaskCard = ({
         <CardContent className="p-4">
           <div className="space-y-3">
             <div className="flex items-start justify-between">
-              <h4 className="font-medium text-slate-900 line-clamp-2 flex-1">
+              <h4 
+                className="font-medium text-slate-900 line-clamp-2 flex-1 cursor-pointer hover:text-blue-600"
+                onClick={handleDetailsClick}
+              >
                 {task.title}
               </h4>
               <DropdownMenu>
@@ -73,7 +84,7 @@ export const TaskCard = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowDetails(true)}>
+                  <DropdownMenuItem onClick={handleDetailsClick}>
                     <Eye className="mr-2 h-4 w-4" />
                     Detalhes
                   </DropdownMenuItem>
@@ -125,12 +136,14 @@ export const TaskCard = ({
         </CardContent>
       </Card>
 
-      <TaskDetailsDialog
-        task={task}
-        isOpen={showDetails}
-        onClose={() => setShowDetails(false)}
-        companyId={task.company_id}
-      />
+      {showDetails && (
+        <TaskDetailsDialog
+          task={task}
+          isOpen={showDetails}
+          onClose={() => setShowDetails(false)}
+          companyId={task.company_id}
+        />
+      )}
     </>
   );
 };

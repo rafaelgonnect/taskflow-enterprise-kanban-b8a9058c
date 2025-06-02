@@ -1,14 +1,13 @@
 
 import { useState } from 'react';
-import { usePersonalTasks, useCreateTask } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { TaskBoard } from '@/components/TaskBoard';
-import { TaskListView } from '@/components/TaskListView';
-import { TaskViewToggle } from '@/components/TaskViewToggle';
+import { Plus } from 'lucide-react';
 import { TaskFormDialog } from './TaskFormDialog';
+import { TaskDetailsDialog } from '../TaskDetailsDialog';
+import { TaskBoard } from '../TaskBoard';
+import { PublicTasksDashboard } from '../PublicTasksDashboard';
+import { useCreateTask, usePersonalTasks, Task } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
-import { CheckSquare, Plus } from 'lucide-react';
 
 interface PersonalTasksTabProps {
   companyId: string;
@@ -17,8 +16,10 @@ interface PersonalTasksTabProps {
 export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
-  const { data: tasks = [], isLoading } = usePersonalTasks(companyId);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  
+  const { data: personalTasks = [] } = usePersonalTasks(companyId);
   const createTask = useCreateTask();
 
   const handleCreateTask = async (formData: any) => {
@@ -31,12 +32,11 @@ export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
         dueDate: formData.dueDate || undefined,
         estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : undefined,
         taskType: 'personal',
-        isPublic: false,
       });
 
       toast({
         title: 'Tarefa criada!',
-        description: `Tarefa ${formData.title} criada com sucesso`,
+        description: `Tarefa "${formData.title}" criada com sucesso`,
       });
 
       setShowCreateDialog(false);
@@ -49,62 +49,53 @@ export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-2 text-slate-600">Carregando tarefas pessoais...</p>
-      </div>
-    );
-  }
+  const handleTaskDetails = (task: Task) => {
+    console.log('Abrindo detalhes da tarefa:', task);
+    setSelectedTask(task);
+    setShowDetailsDialog(true);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Tarefas Pessoais</h2>
-          <p className="text-slate-600">Suas tarefas individuais</p>
+          <p className="text-slate-600">Gerencie suas tarefas pessoais</p>
         </div>
-
-        <div className="flex items-center gap-4">
-          <TaskViewToggle view={viewMode} onViewChange={setViewMode} />
-          
-          <TaskFormDialog
-            open={showCreateDialog}
-            onOpenChange={setShowCreateDialog}
-            onSubmit={handleCreateTask}
-            taskType="personal"
-            companyId={companyId}
-            trigger={
-              <Button onClick={() => setShowCreateDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Tarefa Pessoal
-              </Button>
-            }
-          />
-        </div>
+        
+        <TaskFormDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onSubmit={handleCreateTask}
+          taskType="personal"
+          companyId={companyId}
+          trigger={
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Tarefa
+            </Button>
+          }
+        />
       </div>
 
-      {tasks.length === 0 ? (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <CheckSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 mb-2">Nenhuma tarefa pessoal encontrada</p>
-            <p className="text-sm text-slate-500">Crie sua primeira tarefa pessoal</p>
-          </CardContent>
-        </Card>
-      ) : (
-        viewMode === 'kanban' ? (
-          <TaskBoard 
-            companyId={companyId}
-            taskType="personal"
-          />
-        ) : (
-          <TaskListView 
-            companyId={companyId}
-            taskType="personal"
-          />
-        )
+      <TaskBoard 
+        companyId={companyId}
+        userId="current"
+        onTaskDetails={handleTaskDetails}
+      />
+
+      <PublicTasksDashboard companyId={companyId} />
+
+      {selectedTask && (
+        <TaskDetailsDialog
+          task={selectedTask}
+          isOpen={showDetailsDialog}
+          onClose={() => {
+            setShowDetailsDialog(false);
+            setSelectedTask(null);
+          }}
+          companyId={companyId}
+        />
       )}
     </div>
   );

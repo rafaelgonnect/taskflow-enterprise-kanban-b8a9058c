@@ -1,92 +1,147 @@
 
-import React from "react";
-import { TaskCard } from "@/components/TaskCard";
-import { Task } from '@/hooks/useTasks';
+import { Draggable } from '@hello-pangea/dnd';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TaskCard } from './TaskCard';
+import { Task, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
+import { useState } from 'react';
+import { TaskFormDialog } from './tasks/TaskFormDialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface TaskColumnProps {
   title: string;
-  status: 'todo' | 'in_progress' | 'done';
   tasks: Task[];
-  onStatusChange: (taskId: string, newStatus: 'todo' | 'in_progress' | 'done') => void;
-  onEdit: (task: Task) => void;
-  onDelete: (task: Task) => void;
-  onDetails: (task: Task) => void;
-  borderColor: string;
-  draggedTaskId?: string;
+  status: 'todo' | 'in_progress' | 'done';
+  companyId: string;
+  onTaskDetails?: (task: Task) => void;
 }
 
-export const TaskColumn = ({ 
-  title, 
-  status,
-  tasks, 
-  onStatusChange,
-  onEdit,
-  onDelete,
-  onDetails,
-  borderColor,
-  draggedTaskId
-}: TaskColumnProps) => {
-  const [isDragOver, setIsDragOver] = React.useState(false);
+export const TaskColumn = ({ title, tasks, status, companyId, onTaskDetails }: TaskColumnProps) => {
+  const { toast } = useToast();
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  
+  const updateTask = useUpdateTask();
+  const deleteTask = useDeleteTask();
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setIsDragOver(true);
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setShowEditDialog(true);
   };
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-      setIsDragOver(false);
+  const handleDelete = async (task: Task) => {
+    if (window.confirm(`Tem certeza que deseja excluir a tarefa "${task.title}"?`)) {
+      try {
+        await deleteTask.mutateAsync({ id: task.id, companyId });
+        toast({
+          title: 'Tarefa excluída!',
+          description: `A tarefa "${task.title}" foi excluída com sucesso.`,
+        });
+      } catch (error: any) {
+        toast({
+          title: 'Erro ao excluir tarefa',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    const taskId = e.dataTransfer.getData('text/plain');
-    if (taskId && taskId !== draggedTaskId) {
-      onStatusChange(taskId, status);
+  const handleUpdateTask = async (formData: any) => {
+    if (!editingTask) return;
+
+    try {
+      await updateTask.mutateAsync({
+        id: editingTask.id,
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        companyId,
+        status: editingTask.status,
+        dueDate: formData.dueDate || undefined,
+        estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : undefined,
+      });
+
+      toast({
+        title: 'Tarefa atualizada!',
+        description: `A tarefa "${formData.title}" foi atualizada com sucesso.`,
+      });
+
+      setShowEditDialog(false);
+      setEditingTask(null);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao atualizar tarefa',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const getStatusColor = () => {
+    switch (status) {
+      case 'todo': return 'border-slate-200';
+      case 'in_progress': return 'border-blue-200';
+      case 'done': return 'border-green-200';
+      default: return 'border-slate-200';
     }
   };
 
   return (
-    <div
-      className={`bg-slate-50 rounded-xl p-4 border-2 border-dashed min-h-96 transition-all duration-200 ${
-        isDragOver 
-          ? `${borderColor.replace('border-', 'border-2 border-')} bg-slate-100` 
-          : borderColor
-      }`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-slate-900">{title}</h3>
-        <span className="bg-slate-200 text-slate-700 text-xs px-2 py-1 rounded-full">
-          {tasks.length}
-        </span>
-      </div>
-      
-      <div className="space-y-3">
-        {tasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            onStatusChange={onStatusChange}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onDetails={onDetails}
-            isDragging={draggedTaskId === task.id}
-          />
-        ))}
-        
-        {isDragOver && tasks.length === 0 && (
-          <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 text-center text-blue-600">
-            Solte a tarefa aqui
-          </div>
-        )}
-      </div>
-    </div>
+    <>
+      <Card className={`h-fit ${getStatusColor()}`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium text-slate-700 flex items-center justify-between">
+            {title}
+            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-xs">
+              {tasks.length}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {tasks.map((task, index) => (
+            <Draggable key={task.id} draggableId={task.id} index={index}>
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.draggableProps}
+                  {...provided.dragHandleProps}
+                >
+                  <TaskCard
+                    task={task}
+                    onStatusChange={() => {}}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onDetails={onTaskDetails}
+                    isDragging={snapshot.isDragging}
+                  />
+                </div>
+              )}
+            </Draggable>
+          ))}
+          {tasks.length === 0 && (
+            <div className="text-center py-8 text-slate-400">
+              <p className="text-sm">Nenhuma tarefa</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {editingTask && (
+        <TaskFormDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          onSubmit={handleUpdateTask}
+          taskType="personal"
+          companyId={companyId}
+          initialData={{
+            title: editingTask.title,
+            description: editingTask.description || '',
+            priority: editingTask.priority,
+            dueDate: editingTask.due_date ? editingTask.due_date.split('T')[0] : '',
+            estimatedHours: editingTask.estimated_hours?.toString() || '',
+          }}
+        />
+      )}
+    </>
   );
 };

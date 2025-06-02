@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useDepartmentTasks } from '@/hooks/usePublicTasks';
-import { useCreateTask, useUpdateTaskStatus } from '@/hooks/useTasks';
+import { useCreateTask, useUpdateTaskStatus, Task } from '@/hooks/useTasks';
 import { useToast } from '@/hooks/use-toast';
 import { TaskFormDialog } from './tasks/TaskFormDialog';
 import { TaskDetailsDialog } from './TaskDetailsDialog';
@@ -15,9 +14,15 @@ interface DepartmentTaskManagementProps {
   departmentId: string;
   companyId: string;
   isManager: boolean;
+  onTaskDetails?: (task: Task) => void;
 }
 
-export const DepartmentTaskManagement = ({ departmentId, companyId, isManager }: DepartmentTaskManagementProps) => {
+export const DepartmentTaskManagement = ({ 
+  departmentId, 
+  companyId, 
+  isManager, 
+  onTaskDetails 
+}: DepartmentTaskManagementProps) => {
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
@@ -65,8 +70,9 @@ export const DepartmentTaskManagement = ({ departmentId, companyId, isManager }:
   };
 
   const handleViewDetails = (task: any) => {
-    setSelectedTask(task);
-    setShowDetailsDialog(true);
+    if (onTaskDetails) {
+      onTaskDetails(task);
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -156,7 +162,12 @@ export const DepartmentTaskManagement = ({ departmentId, companyId, isManager }:
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h4 className="font-medium text-slate-900 mb-2">{task.title}</h4>
+                      <h4 
+                        className="font-medium text-slate-900 mb-2 cursor-pointer hover:text-blue-600"
+                        onClick={() => handleViewDetails(task)}
+                      >
+                        {task.title}
+                      </h4>
                       {task.description && (
                         <p className="text-sm text-slate-600 mb-3 line-clamp-2">{task.description}</p>
                       )}
