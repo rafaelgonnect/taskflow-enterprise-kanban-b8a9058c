@@ -45,17 +45,29 @@ export function useCompanyUsers(companyId?: string) {
         console.error('Erro ao buscar user_companies:', userCompaniesError);
       }
       
+      // Query corrigida - especificando os relacionamentos corretamente
       const { data, error } = await supabase
         .from('profiles')
         .select(`
-          *,
-          user_companies!inner(is_active, joined_at),
-          user_roles(
-            roles(name, description)
+          id,
+          email,
+          full_name,
+          user_type,
+          user_companies!user_companies_user_id_fkey(
+            is_active,
+            joined_at
+          ),
+          user_roles!user_roles_user_id_fkey(
+            role_id,
+            roles!user_roles_role_id_fkey(
+              name,
+              description
+            )
           )
         `)
         .eq('user_companies.company_id', companyId)
-        .eq('user_companies.is_active', true);
+        .eq('user_companies.is_active', true)
+        .eq('user_roles.company_id', companyId);
       
       console.log('Resultado da query de usuários:', { data, error });
       
