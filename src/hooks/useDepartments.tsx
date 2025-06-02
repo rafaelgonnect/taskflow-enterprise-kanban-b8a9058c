@@ -8,13 +8,8 @@ export interface Department {
   name: string;
   description: string | null;
   company_id: string;
-  manager_id: string | null;
   created_at: string;
   updated_at: string;
-  manager?: {
-    full_name: string;
-    email: string;
-  };
 }
 
 export function useDepartments(companyId?: string) {
@@ -37,13 +32,8 @@ export function useDepartments(companyId?: string) {
           name,
           description,
           company_id,
-          manager_id,
           created_at,
-          updated_at,
-          manager:profiles!departments_manager_id_fkey(
-            full_name,
-            email
-          )
+          updated_at
         `)
         .eq('company_id', companyId)
         .order('name');
@@ -68,13 +58,11 @@ export function useCreateDepartment() {
     mutationFn: async ({ 
       name, 
       description, 
-      companyId, 
-      managerId 
+      companyId
     }: { 
       name: string; 
       description?: string; 
       companyId: string; 
-      managerId?: string; 
     }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
@@ -84,7 +72,6 @@ export function useCreateDepartment() {
           name,
           description,
           company_id: companyId,
-          manager_id: managerId,
         })
         .select()
         .single();
@@ -107,14 +94,12 @@ export function useUpdateDepartment() {
       id,
       name, 
       description, 
-      companyId, 
-      managerId 
+      companyId
     }: { 
       id: string;
       name: string; 
       description?: string; 
       companyId: string; 
-      managerId?: string; 
     }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
@@ -123,7 +108,6 @@ export function useUpdateDepartment() {
         .update({
           name,
           description,
-          manager_id: managerId,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id);

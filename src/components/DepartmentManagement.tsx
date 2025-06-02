@@ -2,17 +2,15 @@
 import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, Department } from '@/hooks/useDepartments';
-import { useCompanyUsers } from '@/hooks/useCompanyUsers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { Building, Users, Plus, Edit, Trash2, MoreVertical, UserCheck } from 'lucide-react';
+import { Building, Users, Plus, Edit, Trash2, MoreVertical } from 'lucide-react';
 
 export const DepartmentManagement = () => {
   const { selectedCompany } = useCompanyContext();
@@ -22,11 +20,9 @@ export const DepartmentManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    managerId: '',
   });
 
   const { data: departments = [], isLoading: departmentsLoading } = useDepartments(selectedCompany?.id);
-  const { data: users = [], isLoading: usersLoading } = useCompanyUsers(selectedCompany?.id);
   const createDepartment = useCreateDepartment();
   const updateDepartment = useUpdateDepartment();
   const deleteDepartment = useDeleteDepartment();
@@ -39,7 +35,6 @@ export const DepartmentManagement = () => {
         name: formData.name,
         description: formData.description,
         companyId: selectedCompany.id,
-        managerId: formData.managerId || undefined,
       });
 
       toast({
@@ -47,7 +42,7 @@ export const DepartmentManagement = () => {
         description: `Departamento ${formData.name} criado com sucesso`,
       });
 
-      setFormData({ name: '', description: '', managerId: '' });
+      setFormData({ name: '', description: '' });
       setShowCreateDialog(false);
     } catch (error: any) {
       toast({
@@ -67,7 +62,6 @@ export const DepartmentManagement = () => {
         name: formData.name,
         description: formData.description,
         companyId: selectedCompany.id,
-        managerId: formData.managerId || undefined,
       });
 
       toast({
@@ -75,7 +69,7 @@ export const DepartmentManagement = () => {
         description: `Departamento ${formData.name} atualizado com sucesso`,
       });
 
-      setFormData({ name: '', description: '', managerId: '' });
+      setFormData({ name: '', description: '' });
       setEditingDepartment(null);
     } catch (error: any) {
       toast({
@@ -113,12 +107,11 @@ export const DepartmentManagement = () => {
     setFormData({
       name: department.name,
       description: department.description || '',
-      managerId: department.manager_id || '',
     });
   };
 
   const resetForm = () => {
-    setFormData({ name: '', description: '', managerId: '' });
+    setFormData({ name: '', description: '' });
     setEditingDepartment(null);
     setShowCreateDialog(false);
   };
@@ -175,26 +168,6 @@ export const DepartmentManagement = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
-              <div>
-                <label className="text-sm font-medium">Gerente</label>
-                <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar gerente (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Nenhum gerente</SelectItem>
-                    {usersLoading ? (
-                      <SelectItem value="loading" disabled>Carregando...</SelectItem>
-                    ) : (
-                      users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.full_name} ({user.email})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={resetForm}>
                   Cancelar
@@ -234,12 +207,6 @@ export const DepartmentManagement = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-medium text-slate-900">{department.name}</h3>
-                      {department.manager && (
-                        <Badge variant="outline">
-                          <UserCheck className="w-3 h-3 mr-1" />
-                          Gerente: {department.manager.full_name}
-                        </Badge>
-                      )}
                     </div>
                     {department.description && (
                       <p className="text-sm text-slate-600 mb-3">{department.description}</p>
