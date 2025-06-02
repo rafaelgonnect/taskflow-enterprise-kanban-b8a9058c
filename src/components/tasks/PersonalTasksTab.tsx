@@ -4,10 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { TaskFormDialog } from './TaskFormDialog';
 import { TaskDetailsDialog } from '../TaskDetailsDialog';
-import { TaskBoard } from '../TaskBoard';
-import { PublicTasksDashboard } from '../PublicTasksDashboard';
+import { TaskBoardUnified } from './TaskBoardUnified';
+import { TaskFiltersComponent } from './TaskFilters';
+import { AcceptableTasksSection } from './AcceptableTasksSection';
 import { useCreateTask, usePersonalTasks, Task } from '@/hooks/useTasks';
+import { usePublicDepartmentTasks, usePublicCompanyTasks } from '@/hooks/usePublicTasks';
+import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PersonalTasksTabProps {
   companyId: string;
@@ -15,11 +19,17 @@ interface PersonalTasksTabProps {
 
 export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   
   const { data: personalTasks = [] } = usePersonalTasks(companyId);
+  const { data: publicDepartmentTasks = [] } = usePublicDepartmentTasks();
+  const { data: publicCompanyTasks = [] } = usePublicCompanyTasks(companyId);
+  
+  const { filters, setFilters, filteredTasks } = useTaskFilters(personalTasks, user?.id);
+  
   const createTask = useCreateTask();
 
   const handleCreateTask = async (formData: any) => {
@@ -60,7 +70,7 @@ export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-900">Tarefas Pessoais</h2>
-          <p className="text-slate-600">Gerencie suas tarefas pessoais</p>
+          <p className="text-slate-600">Suas tarefas pessoais e tarefas aceitas</p>
         </div>
         
         <TaskFormDialog
@@ -78,13 +88,38 @@ export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
         />
       </div>
 
-      <TaskBoard 
-        companyId={companyId}
-        userId="current"
-        onTaskDetails={handleTaskDetails}
+      <TaskFiltersComponent
+        filters={filters}
+        onFiltersChange={setFilters}
+        showTaskTypeFilter={true}
+        availableTaskTypes={[
+          { value: 'personal', label: 'Pessoais' },
+          { value: 'department', label: 'Departamentais aceitas' },
+          { value: 'company', label: 'Empresariais aceitas' }
+        ]}
       />
 
-      <PublicTasksDashboard companyId={companyId} />
+      <TaskBoardUnified 
+        tasks={filteredTasks}
+        companyId={companyId}
+        onTaskDetails={handleTaskDetails}
+        showOriginBadges={true}
+        allowDragDrop={true}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AcceptableTasksSection
+          tasks={publicDepartmentTasks}
+          title="Tarefas Departamentais Disponíveis"
+          emptyMessage="Nenhuma tarefa departamental disponível para aceitar"
+        />
+
+        <AcceptableTasksSection
+          tasks={publicCompanyTasks}
+          title="Tarefas Empresariais Disponíveis"
+          emptyMessage="Nenhuma tarefa empresarial disponível para aceitar"
+        />
+      </div>
 
       {selectedTask && (
         <TaskDetailsDialog

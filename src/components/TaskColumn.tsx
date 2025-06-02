@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TaskCard } from './TaskCard';
 import { Task, useUpdateTask, useDeleteTask } from '@/hooks/useTasks';
@@ -85,46 +84,5 @@ export const TaskColumn = ({ title, tasks, status, companyId, onTaskDetails }: T
     }
   };
 
-  return (
-    <>
-      <Card className={`h-fit ${getStatusColor()}`}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-slate-700 flex items-center justify-between">
-            {title}
-            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-xs">
-              {tasks.length}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onStatusChange={() => {}}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onDetails={onTaskDetails}
-            />
-          ))}
-          {tasks.length === 0 && (
-            <div className="text-center py-8 text-slate-400">
-              <p className="text-sm">Nenhuma tarefa</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {editingTask && (
-        <TaskFormDialog
-          open={showEditDialog}
-          onOpenChange={setShowEditDialog}
-          onSubmit={handleUpdateTask}
-          taskType="personal"
-          companyId={companyId}
-          trigger={<div />}
-        />
-      )}
-    </>
-  );
+  return null; // Este componente não é mais usado diretamente
 };

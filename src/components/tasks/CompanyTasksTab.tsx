@@ -4,10 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Plus, Building } from 'lucide-react';
 import { TaskFormDialog } from './TaskFormDialog';
 import { TaskDetailsDialog } from '../TaskDetailsDialog';
-import { TaskBoard } from '../TaskBoard';
-import { PublicTasksDashboard } from '../PublicTasksDashboard';
+import { TaskBoardUnified } from './TaskBoardUnified';
+import { TaskFiltersComponent } from './TaskFilters';
+import { AcceptableTasksSection } from './AcceptableTasksSection';
 import { useCreateTask, Task } from '@/hooks/useTasks';
+import { useCompanyTasks, usePublicCompanyTasks } from '@/hooks/usePublicTasks';
+import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CompanyTasksTabProps {
   companyId: string;
@@ -15,9 +19,15 @@ interface CompanyTasksTabProps {
 
 export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  
+  const { data: companyTasks = [] } = useCompanyTasks(companyId);
+  const { data: publicCompanyTasks = [] } = usePublicCompanyTasks(companyId);
+  
+  const { filters, setFilters, filteredTasks } = useTaskFilters(companyTasks, user?.id);
   
   const createTask = useCreateTask();
 
@@ -78,12 +88,28 @@ export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
         />
       </div>
 
-      <TaskBoard 
-        companyId={companyId}
-        onTaskDetails={handleTaskDetails}
+      <TaskFiltersComponent
+        filters={filters}
+        onFiltersChange={setFilters}
+        showTaskTypeFilter={false}
+        showAssigneeFilter={true}
       />
 
-      <PublicTasksDashboard companyId={companyId} />
+      <TaskBoardUnified 
+        tasks={filteredTasks}
+        companyId={companyId}
+        onTaskDetails={handleTaskDetails}
+        showOriginBadges={false}
+        allowDragDrop={true}
+      />
+
+      {publicCompanyTasks.length > 0 && (
+        <AcceptableTasksSection
+          tasks={publicCompanyTasks}
+          title="Tarefas Empresariais Públicas"
+          emptyMessage="Nenhuma tarefa pública disponível"
+        />
+      )}
 
       {selectedTask && (
         <TaskDetailsDialog

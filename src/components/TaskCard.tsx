@@ -7,6 +7,8 @@ import { MoreVertical, Eye, Edit, Trash2, Calendar, Clock, User } from "lucide-r
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Task } from '@/hooks/useTasks';
 import { TaskDetailsDialog } from "./TaskDetailsDialog";
+import { TaskOriginBadge } from "./tasks/TaskOriginBadge";
+import { TaskProgressIndicator } from "./tasks/TaskProgressIndicator";
 import { useState } from "react";
 
 interface TaskCardProps {
@@ -15,6 +17,8 @@ interface TaskCardProps {
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
   onDetails?: (task: Task) => void;
+  showOriginBadge?: boolean;
+  showProgressIndicator?: boolean;
   isDragging?: boolean;
 }
 
@@ -24,6 +28,8 @@ export const TaskCard = ({
   onEdit,
   onDelete,
   onDetails,
+  showOriginBadge = false,
+  showProgressIndicator = false,
   isDragging = false
 }: TaskCardProps) => {
   const [showDetails, setShowDetails] = useState(false);
@@ -104,10 +110,15 @@ export const TaskCard = ({
               <p className="text-sm text-slate-600 line-clamp-2">{task.description}</p>
             )}
 
-            <div className="flex items-center justify-between">
-              <Badge className={getPriorityColor(task.priority)}>
-                {getPriorityLabel(task.priority)}
-              </Badge>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                {showOriginBadge && <TaskOriginBadge task={task} />}
+                <Badge className={getPriorityColor(task.priority)}>
+                  {getPriorityLabel(task.priority)}
+                </Badge>
+              </div>
+              
+              {showProgressIndicator && <TaskProgressIndicator task={task} />}
             </div>
 
             <div className="space-y-2 text-xs text-slate-500">

@@ -4,12 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Plus, Users } from 'lucide-react';
 import { TaskFormDialog } from './TaskFormDialog';
 import { TaskDetailsDialog } from '../TaskDetailsDialog';
-import { DepartmentTaskManagement } from '../DepartmentTaskManagement';
-import { PublicTasksDashboard } from '../PublicTasksDashboard';
+import { TaskBoardUnified } from './TaskBoardUnified';
+import { TaskFiltersComponent } from './TaskFilters';
+import { AcceptableTasksSection } from './AcceptableTasksSection';
 import { useCreateTask, Task } from '@/hooks/useTasks';
+import { useDepartmentTasks, usePublicDepartmentTasks } from '@/hooks/usePublicTasks';
 import { useDepartments } from '@/hooks/useDepartments';
+import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface DepartmentTasksTabProps {
   companyId: string;
@@ -17,11 +22,18 @@ interface DepartmentTasksTabProps {
 
 export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   
   const { data: departments = [] } = useDepartments(companyId);
+  const { data: departmentTasks = [] } = useDepartmentTasks(selectedDepartment);
+  const { data: publicDepartmentTasks = [] } = usePublicDepartmentTasks(selectedDepartment);
+  
+  const { filters, setFilters, filteredTasks } = useTaskFilters(departmentTasks, user?.id);
+  
   const createTask = useCreateTask();
 
   const handleCreateTask = async (formData: any) => {
@@ -31,7 +43,7 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
         description: formData.description,
         priority: formData.priority,
         companyId: companyId,
-        departmentId: formData.departmentId,
+        departmentId: selectedDepartment,
         dueDate: formData.dueDate || undefined,
         estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : undefined,
         taskType: 'department',
@@ -83,34 +95,60 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
           <p className="text-slate-600">Gerencie tarefas dos departamentos</p>
         </div>
         
-        <TaskFormDialog
-          open={showCreateDialog}
-          onOpenChange={setShowCreateDialog}
-          onSubmit={handleCreateTask}
-          taskType="department"
-          companyId={companyId}
-          trigger={
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Tarefa Departamental
-            </Button>
-          }
-        />
-      </div>
-
-      <div className="space-y-6">
-        {departments.map((department) => (
-          <DepartmentTaskManagement
-            key={department.id}
-            departmentId={department.id}
+        {selectedDepartment && (
+          <TaskFormDialog
+            open={showCreateDialog}
+            onOpenChange={setShowCreateDialog}
+            onSubmit={handleCreateTask}
+            taskType="department"
             companyId={companyId}
-            isManager={true}
-            onTaskDetails={handleTaskDetails}
+            departmentId={selectedDepartment}
+            trigger={
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Tarefa Departamental
+              </Button>
+            }
           />
-        ))}
+        )}
       </div>
 
-      <PublicTasksDashboard companyId={companyId} />
+      <Tabs value={selectedDepartment} onValueChange={setSelectedDepartment}>
+        <TabsList className="grid w-full grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+          {departments.map((department) => (
+            <TabsTrigger key={department.id} value={department.id} className="text-sm">
+              {department.name}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {departments.map((department) => (
+          <TabsContent key={department.id} value={department.id} className="space-y-6">
+            <TaskFiltersComponent
+              filters={filters}
+              onFiltersChange={setFilters}
+              showTaskTypeFilter={false}
+              showAssigneeFilter={true}
+            />
+
+            <TaskBoardUnified 
+              tasks={filteredTasks}
+              companyId={companyId}
+              onTaskDetails={handleTaskDetails}
+              showOriginBadges={false}
+              allowDragDrop={true}
+            />
+
+            {publicDepartmentTasks.length > 0 && (
+              <AcceptableTasksSection
+                tasks={publicDepartmentTasks}
+                title="Tarefas Públicas do Departamento"
+                emptyMessage="Nenhuma tarefa pública disponível"
+              />
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
 
       {selectedTask && (
         <TaskDetailsDialog
