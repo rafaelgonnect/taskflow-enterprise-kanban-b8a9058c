@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -18,7 +17,10 @@ export interface Task {
   updated_at: string;
   estimated_hours?: number;
   actual_hours?: number;
-  // Novos campos para melhorias
+  is_timer_running?: boolean;
+  current_timer_start?: string;
+  total_time_minutes?: number;
+  // Relacionamentos
   attachments?: TaskAttachment[];
   comments?: TaskComment[];
   history?: TaskHistory[];

@@ -10,6 +10,7 @@ interface TaskColumnProps {
   onStatusChange: (taskId: string, newStatus: 'todo' | 'in_progress' | 'done') => void;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
+  onDetails: (task: Task) => void;
   borderColor: string;
   draggedTaskId?: string;
 }
@@ -21,6 +22,7 @@ export const TaskColumn = ({
   onStatusChange,
   onEdit,
   onDelete,
+  onDetails,
   borderColor,
   draggedTaskId
 }: TaskColumnProps) => {
@@ -74,6 +76,7 @@ export const TaskColumn = ({
             onStatusChange={onStatusChange}
             onEdit={onEdit}
             onDelete={onDelete}
+            onDetails={onDetails}
             isDragging={draggedTaskId === task.id}
           />
         ))}

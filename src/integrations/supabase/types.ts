@@ -292,6 +292,167 @@ export type Database = {
           },
         ]
       }
+      task_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          task_id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id?: string
+          task_id: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          task_id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_comments: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_history: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string
+          field_changed: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          task_id: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          task_id: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string
+          field_changed?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_time_logs: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          ended_at: string | null
+          id: string
+          started_at: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_time_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           actual_hours: number | null
@@ -299,14 +460,17 @@ export type Database = {
           company_id: string
           created_at: string
           created_by: string
+          current_timer_start: string | null
           department_id: string | null
           description: string | null
           due_date: string | null
           estimated_hours: number | null
           id: string
+          is_timer_running: boolean | null
           priority: string
           status: string
           title: string
+          total_time_minutes: number | null
           updated_at: string
         }
         Insert: {
@@ -315,14 +479,17 @@ export type Database = {
           company_id: string
           created_at?: string
           created_by: string
+          current_timer_start?: string | null
           department_id?: string | null
           description?: string | null
           due_date?: string | null
           estimated_hours?: number | null
           id?: string
+          is_timer_running?: boolean | null
           priority?: string
           status?: string
           title: string
+          total_time_minutes?: number | null
           updated_at?: string
         }
         Update: {
@@ -331,14 +498,17 @@ export type Database = {
           company_id?: string
           created_at?: string
           created_by?: string
+          current_timer_start?: string | null
           department_id?: string | null
           description?: string | null
           due_date?: string | null
           estimated_hours?: number | null
           id?: string
+          is_timer_running?: boolean | null
           priority?: string
           status?: string
           title?: string
+          total_time_minutes?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -521,6 +691,10 @@ export type Database = {
       accept_invitation_by_code: {
         Args: { invite_code: string; user_email: string }
         Returns: Json
+      }
+      calculate_total_time: {
+        Args: { task_id_param: string }
+        Returns: number
       }
       create_default_roles: {
         Args: { _company_id: string }

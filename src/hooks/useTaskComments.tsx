@@ -1,0 +1,104 @@
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
+
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  content: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  user_name?: string;
+}
+
+export function useTaskComments(taskId: string) {
+  return useQuery({
+    queryKey: ['task-comments', taskId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('task_comments')
+        .select(`
+          *,
+          profiles!task_comments_created_by_fkey(full_name)
+        `)
+        .eq('task_id', taskId)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      
+      return data.map(comment => ({
+        ...comment,
+        user_name: comment.profiles?.full_name || 'Usuário desconhecido'
+      })) as TaskComment[];
+    },
+    enabled: !!taskId,
+  });
+}
+
+export function useCreateComment() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  return useMutation({
+    mutationFn: async ({ taskId, content }: { taskId: string; content: string }) => {
+      if (!user) throw new Error('Usuário não autenticado');
+      
+      const { data, error } = await supabase
+        .from('task_comments')
+        .insert({
+          task_id: taskId,
+          content,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['task-comments', variables.taskId] });
+    },
+  });
+}
+
+export function useUpdateComment() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, content, taskId }: { id: string; content: string; taskId: string }) => {
+      const { data, error } = await supabase
+        .from('task_comments')
+        .update({ content, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['task-comments', variables.taskId] });
+    },
+  });
+}
+
+export function useDeleteComment() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, taskId }: { id: string; taskId: string }) => {
+      const { error } = await supabase
+        .from('task_comments')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['task-comments', variables.taskId] });
+    },
+  });
+}

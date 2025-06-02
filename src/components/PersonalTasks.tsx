@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { usePersonalTasks, useCreateTask, useUpdateTask, useDeleteTask, useUpdateTaskStatus, Task } from '@/hooks/useTasks';
@@ -11,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { CheckSquare, Plus, Clock, Timer } from 'lucide-react';
 import { TaskColumn } from '@/components/TaskColumn';
+import { TaskDetailsDialog } from '@/components/TaskDetailsDialog';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Edit, Trash2, MoreVertical, AlertCircle, Calendar } from 'lucide-react';
@@ -20,6 +22,7 @@ export const PersonalTasks = () => {
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string>('');
   const [formData, setFormData] = useState({
     title: '',
@@ -167,15 +170,6 @@ export const PersonalTasks = () => {
     return tasks.filter(task => task.status === status);
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'todo': return 'A Fazer';
-      case 'in_progress': return 'Em Progresso';
-      case 'done': return 'Concluído';
-      default: return status;
-    }
-  };
-
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high': return 'bg-red-100 text-red-700 border-red-200';
@@ -207,7 +201,7 @@ export const PersonalTasks = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Minhas Tarefas</h1>
-          <p className="text-slate-600">Gerencie suas tarefas pessoais com drag & drop</p>
+          <p className="text-slate-600">Gerencie suas tarefas pessoais com drag & drop, timer e muito mais</p>
         </div>
 
         <Dialog open={showCreateDialog || !!editingTask} onOpenChange={(open) => !open && resetForm()}>
@@ -322,6 +316,7 @@ export const PersonalTasks = () => {
                 onStatusChange={handleStatusChange}
                 onEdit={openEditDialog}
                 onDelete={handleDeleteTask}
+                onDetails={setSelectedTask}
                 borderColor="border-slate-300"
                 draggedTaskId={draggedTaskId}
               />
@@ -332,6 +327,7 @@ export const PersonalTasks = () => {
                 onStatusChange={handleStatusChange}
                 onEdit={openEditDialog}
                 onDelete={handleDeleteTask}
+                onDetails={setSelectedTask}
                 borderColor="border-blue-300"
                 draggedTaskId={draggedTaskId}
               />
@@ -342,6 +338,7 @@ export const PersonalTasks = () => {
                 onStatusChange={handleStatusChange}
                 onEdit={openEditDialog}
                 onDelete={handleDeleteTask}
+                onDetails={setSelectedTask}
                 borderColor="border-green-300"
                 draggedTaskId={draggedTaskId}
               />
@@ -373,14 +370,50 @@ export const PersonalTasks = () => {
                     <Card key={task.id} className="border rounded-lg">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between">
-                          <h4 className="font-medium">{task.title}</h4>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 
+                                className="font-medium cursor-pointer hover:text-blue-600"
+                                onClick={() => setSelectedTask(task)}
+                              >
+                                {task.title}
+                              </h4>
+                              {task.is_timer_running && (
+                                <div className="flex items-center gap-1 text-xs text-green-600">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                  <Timer className="w-3 h-3" />
+                                </div>
+                              )}
+                            </div>
+                            {task.description && (
+                              <p className="text-sm text-slate-600 mb-2">{task.description}</p>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
+                                {getPriorityLabel(task.priority)}
+                              </Badge>
+                              {task.due_date && (
+                                <div className="flex items-center gap-1 text-xs text-slate-500">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>{new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-1 text-xs text-slate-500">
+                                <Clock className="w-3 h-3" />
+                                <span>{Math.floor((task.total_time_minutes || 0) / 60)}h {(task.total_time_minutes || 0) % 60}m</span>
+                              </div>
+                            </div>
+                          </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">
                                 <MoreVertical className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
+                              <DropdownMenuItem onClick={() => setSelectedTask(task)}>
+                                Ver Detalhes
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleStatusChange(task.id, 'in_progress')}>
                                 <Clock className="w-4 h-4 mr-2" />
                                 Iniciar
@@ -398,20 +431,6 @@ export const PersonalTasks = () => {
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </div>
-                        {task.description && (
-                          <p className="text-sm text-slate-600">{task.description}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
-                            {getPriorityLabel(task.priority)}
-                          </Badge>
-                          {task.due_date && (
-                            <div className="flex items-center gap-1 text-xs text-slate-500">
-                              <Calendar className="w-3 h-3" />
-                              <span>{new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
-                            </div>
-                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -442,6 +461,14 @@ export const PersonalTasks = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog de Detalhes da Tarefa */}
+      <TaskDetailsDialog
+        task={selectedTask}
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        companyId={selectedCompany.id}
+      />
     </div>
   );
 };
