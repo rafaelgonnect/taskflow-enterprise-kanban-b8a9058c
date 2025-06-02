@@ -4,15 +4,16 @@ import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useCompanyUsers, useToggleUserStatus } from '@/hooks/useCompanyUsers';
 import { useCreateInvitation, useInvitations } from '@/hooks/useInvitations';
 import { AuditLogsDialog } from '@/components/AuditLogsDialog';
+import { PermissionGuard } from '@/components/PermissionGuard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Plus, Mail, CheckCircle, Clock, X, UserCog, Shield, FileText, MoreVertical, UserX, UserCheck } from 'lucide-react';
+import { Users, Plus, Mail, CheckCircle, Clock, X, UserCog, Shield, FileText, MoreVertical, UserX, UserCheck, Filter, Search, Download, Settings, Eye } from 'lucide-react';
 import { UserPermissionsDialog } from '@/components/UserPermissionsDialog';
 
 export const UserManagement = () => {
@@ -23,11 +24,27 @@ export const UserManagement = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers(selectedCompany?.id);
   const { data: invitations = [], isLoading: invitationsLoading } = useInvitations(selectedCompany?.id);
   const createInvitation = useCreateInvitation();
   const toggleUserStatus = useToggleUserStatus();
+
+  // Filtrar usuários
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || 
+                         (statusFilter === 'active' && user.is_active) ||
+                         (statusFilter === 'inactive' && !user.is_active);
+    return matchesSearch && matchesStatus;
+  });
+
+  const activeUsersCount = users.filter(u => u.is_active).length;
+  const inactiveUsersCount = users.filter(u => !u.is_active).length;
+  const pendingInvitesCount = invitations.filter(i => i.status === 'pending').length;
 
   const handleInviteUser = async () => {
     if (!selectedCompany || !inviteEmail.trim()) return;
@@ -105,66 +122,173 @@ export const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header com estatísticas */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Gerenciar Usuários</h1>
           <p className="text-slate-600">Gerencie os usuários e convites da empresa</p>
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowAuditLogs(true)}>
-            <FileText className="w-4 h-4 mr-2" />
-            Logs de Auditoria
-          </Button>
+          <PermissionGuard permission="view_audit_logs">
+            <Button variant="outline" onClick={() => setShowAuditLogs(true)}>
+              <FileText className="w-4 h-4 mr-2" />
+              Logs de Auditoria
+            </Button>
+          </PermissionGuard>
           
-          <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Convidar Usuário
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Convidar Novo Usuário</DialogTitle>
-                <DialogDescription>
-                  Envie um convite por email para um novo usuário se juntar à empresa
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <label className="text-sm font-medium">Email do usuário</label>
-                  <Input
-                    type="email"
-                    placeholder="usuario@empresa.com"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
+          <PermissionGuard permission="invite_users">
+            <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Convidar Usuário
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Convidar Novo Usuário</DialogTitle>
+                  <DialogDescription>
+                    Envie um convite por email para um novo usuário se juntar à empresa
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <label className="text-sm font-medium">Email do usuário</label>
+                    <Input
+                      type="email"
+                      placeholder="usuario@empresa.com"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+                      Cancelar
+                    </Button>
+                    <Button 
+                      onClick={handleInviteUser}
+                      disabled={!inviteEmail.trim() || createInvitation.isPending}
+                    >
+                      {createInvitation.isPending ? 'Enviando...' : 'Enviar Convite'}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
-                    Cancelar
-                  </Button>
-                  <Button 
-                    onClick={handleInviteUser}
-                    disabled={!inviteEmail.trim() || createInvitation.isPending}
-                  >
-                    {createInvitation.isPending ? 'Enviando...' : 'Enviar Convite'}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </PermissionGuard>
         </div>
       </div>
 
+      {/* Estatísticas rápidas */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{activeUsersCount}</p>
+                <p className="text-sm text-slate-600">Usuários Ativos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <UserX className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{inactiveUsersCount}</p>
+                <p className="text-sm text-slate-600">Usuários Inativos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Mail className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{pendingInvitesCount}</p>
+                <p className="text-sm text-slate-600">Convites Pendentes</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Shield className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{users.length}</p>
+                <p className="text-sm text-slate-600">Total de Usuários</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filtros e busca */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Input
+                  placeholder="Buscar por nome ou email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button
+                variant={statusFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('all')}
+              >
+                Todos
+              </Button>
+              <Button
+                variant={statusFilter === 'active' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('active')}
+              >
+                Ativos
+              </Button>
+              <Button
+                variant={statusFilter === 'inactive' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setStatusFilter('inactive')}
+              >
+                Inativos
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Usuários Ativos */}
+        {/* Usuários */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
-              Usuários Ativos ({users.length})
+              Usuários ({filteredUsers.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -173,11 +297,13 @@ export const UserManagement = () => {
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
                 <p className="mt-2 text-sm text-slate-600">Carregando usuários...</p>
               </div>
-            ) : users.length === 0 ? (
-              <p className="text-center py-4 text-slate-500">Nenhum usuário encontrado</p>
+            ) : filteredUsers.length === 0 ? (
+              <p className="text-center py-4 text-slate-500">
+                {searchTerm ? 'Nenhum usuário encontrado para a busca' : 'Nenhum usuário encontrado'}
+              </p>
             ) : (
               <div className="space-y-3">
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center gap-3">
                       <Avatar>
@@ -208,26 +334,40 @@ export const UserManagement = () => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleManagePermissions(user)}>
-                            <UserCog className="w-4 h-4 mr-2" />
-                            Gerenciar Permissões
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleToggleUserStatus(user)}
-                            className={user.is_active ? 'text-red-600' : 'text-green-600'}
-                          >
-                            {user.is_active ? (
-                              <>
-                                <UserX className="w-4 h-4 mr-2" />
-                                Desativar Usuário
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="w-4 h-4 mr-2" />
-                                Ativar Usuário
-                              </>
-                            )}
-                          </DropdownMenuItem>
+                          <PermissionGuard permission="view_user_activity">
+                            <DropdownMenuItem>
+                              <Eye className="w-4 h-4 mr-2" />
+                              Ver Perfil
+                            </DropdownMenuItem>
+                          </PermissionGuard>
+                          
+                          <PermissionGuard permission="manage_user_roles">
+                            <DropdownMenuItem onClick={() => handleManagePermissions(user)}>
+                              <UserCog className="w-4 h-4 mr-2" />
+                              Gerenciar Permissões
+                            </DropdownMenuItem>
+                          </PermissionGuard>
+                          
+                          <DropdownMenuSeparator />
+                          
+                          <PermissionGuard permission="deactivate_users">
+                            <DropdownMenuItem 
+                              onClick={() => handleToggleUserStatus(user)}
+                              className={user.is_active ? 'text-red-600' : 'text-green-600'}
+                            >
+                              {user.is_active ? (
+                                <>
+                                  <UserX className="w-4 h-4 mr-2" />
+                                  Desativar Usuário
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="w-4 h-4 mr-2" />
+                                  Ativar Usuário
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                          </PermissionGuard>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -238,7 +378,7 @@ export const UserManagement = () => {
           </CardContent>
         </Card>
 
-        {/* Convites Pendentes */}
+        {/* Convites */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

@@ -41,6 +41,10 @@ export interface Role {
   company_id: string;
   is_default: boolean;
   created_at: string;
+  color?: string;
+  icon?: string;
+  is_system_role?: boolean;
+  max_users?: number;
 }
 
 export type Permission = 
@@ -55,7 +59,19 @@ export type Permission =
   'assign_tasks' |
   'view_reports' |
   'manage_permissions' |
-  'view_audit_logs';
+  'view_audit_logs' |
+  'invite_users' |
+  'manage_user_roles' |
+  'deactivate_users' |
+  'view_user_activity' |
+  'create_personal_tasks' |
+  'create_department_tasks' |
+  'create_company_tasks' |
+  'accept_public_tasks' |
+  'view_task_analytics' |
+  'create_departments' |
+  'manage_department_members' |
+  'view_department_analytics';
 
 export interface UserRole {
   id: string;
@@ -66,6 +82,25 @@ export interface UserRole {
   assigned_at: string;
 }
 
+export interface RoleHierarchy {
+  id: string;
+  parent_role_id?: string;
+  child_role_id?: string;
+  company_id: string;
+  created_at: string;
+}
+
+export interface RoleTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  icon: string;
+  color: string;
+  permissions: Permission[];
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface AuditLog {
   id: string;
   user_id: string;
@@ -74,7 +109,7 @@ export interface AuditLog {
   target_id?: string;
   old_values?: any;
   new_values?: any;
-  ip_address?: string;
+  ip_address?: any;
   user_agent?: string;
   company_id: string;
   created_at: string;

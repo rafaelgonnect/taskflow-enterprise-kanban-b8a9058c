@@ -330,6 +330,52 @@ export type Database = {
         }
         Relationships: []
       }
+      role_hierarchy: {
+        Row: {
+          child_role_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          parent_role_id: string | null
+        }
+        Insert: {
+          child_role_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          parent_role_id?: string | null
+        }
+        Update: {
+          child_role_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          parent_role_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_hierarchy_child_role_id_fkey"
+            columns: ["child_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_hierarchy_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_hierarchy_parent_role_id_fkey"
+            columns: ["parent_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       role_permissions: {
         Row: {
           id: string
@@ -356,29 +402,74 @@ export type Database = {
           },
         ]
       }
+      role_templates: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          permissions: Json
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          permissions?: Json
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          permissions?: Json
+        }
+        Relationships: []
+      }
       roles: {
         Row: {
+          color: string | null
           company_id: string
           created_at: string
           description: string | null
+          icon: string | null
           id: string
           is_default: boolean
+          is_system_role: boolean | null
+          max_users: number | null
           name: string
         }
         Insert: {
+          color?: string | null
           company_id: string
           created_at?: string
           description?: string | null
+          icon?: string | null
           id?: string
           is_default?: boolean
+          is_system_role?: boolean | null
+          max_users?: number | null
           name: string
         }
         Update: {
+          color?: string | null
           company_id?: string
           created_at?: string
           description?: string | null
+          icon?: string | null
           id?: string
           is_default?: boolean
+          is_system_role?: boolean | null
+          max_users?: number | null
           name?: string
         }
         Relationships: [
@@ -814,6 +905,10 @@ export type Database = {
         Args: { task_id_param: string }
         Returns: boolean
       }
+      apply_role_template: {
+        Args: { _role_id: string; _template_id: string }
+        Returns: boolean
+      }
       calculate_total_time: {
         Args: { task_id_param: string }
         Returns: number
@@ -854,6 +949,18 @@ export type Database = {
         | "view_reports"
         | "manage_permissions"
         | "view_audit_logs"
+        | "invite_users"
+        | "manage_user_roles"
+        | "deactivate_users"
+        | "view_user_activity"
+        | "create_personal_tasks"
+        | "create_department_tasks"
+        | "create_company_tasks"
+        | "accept_public_tasks"
+        | "view_task_analytics"
+        | "create_departments"
+        | "manage_department_members"
+        | "view_department_analytics"
       user_type: "company_owner" | "employee"
     }
     CompositeTypes: {
@@ -984,6 +1091,18 @@ export const Constants = {
         "view_reports",
         "manage_permissions",
         "view_audit_logs",
+        "invite_users",
+        "manage_user_roles",
+        "deactivate_users",
+        "view_user_activity",
+        "create_personal_tasks",
+        "create_department_tasks",
+        "create_company_tasks",
+        "accept_public_tasks",
+        "view_task_analytics",
+        "create_departments",
+        "manage_department_members",
+        "view_department_analytics",
       ],
       user_type: ["company_owner", "employee"],
     },
