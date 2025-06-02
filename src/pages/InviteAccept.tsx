@@ -25,17 +25,17 @@ const InviteAccept = () => {
   const { user, signUp } = useAuth();
   const { toast } = useToast();
   const [isSigningUp, setIsSigningUp] = useState(false);
-  const [pendingAcceptance, setPendingAcceptance] = useState(false);
+  const [showSignupForm, setShowSignupForm] = useState(false);
 
   const { data: invitation, isLoading } = useGetInvitationByCode(inviteCode);
   const acceptInvitation = useAcceptInvitationByCode();
 
   // Se o usuário já está logado e o email confere, aceitar automaticamente
   useEffect(() => {
-    if (user && invitation && user.email === invitation.email && !pendingAcceptance) {
+    if (user && invitation && user.email === invitation.email && !showSignupForm) {
       handleAcceptInvitation();
     }
-  }, [user, invitation, pendingAcceptance]);
+  }, [user, invitation, showSignupForm]);
 
   const handleAcceptInvitation = async () => {
     if (!inviteCode) return;
@@ -55,17 +55,13 @@ const InviteAccept = () => {
     } catch (error: any) {
       console.error('Erro ao aceitar convite:', error);
       
-      // Se o erro for "Usuário não encontrado", pode ser que o perfil ainda não foi criado
+      // Se o erro for "Usuário não encontrado", mostrar formulário de cadastro
       if (error.message?.includes('Usuário não encontrado')) {
         toast({
-          title: 'Criando seu perfil...',
-          description: 'Aguarde enquanto configuramos sua conta.',
+          title: 'Complete seu cadastro',
+          description: 'Precisamos que você complete seu cadastro para aceitar o convite.',
         });
-        
-        // Aguardar um pouco e tentar novamente
-        setTimeout(() => {
-          handleAcceptInvitation();
-        }, 2000);
+        setShowSignupForm(true);
       } else {
         toast({
           title: 'Erro ao aceitar convite',
@@ -80,7 +76,6 @@ const InviteAccept = () => {
     if (!invitation) return;
 
     setIsSigningUp(true);
-    setPendingAcceptance(true);
     
     try {
       const { error } = await signUp(email, password, fullName);
@@ -93,8 +88,8 @@ const InviteAccept = () => {
 
       // Aguardar um momento para o perfil ser criado e depois aceitar o convite
       setTimeout(() => {
-        setPendingAcceptance(false);
         // O useEffect detectará o usuário logado e tentará aceitar o convite
+        setShowSignupForm(false);
       }, 3000);
       
     } catch (error: any) {
@@ -103,7 +98,6 @@ const InviteAccept = () => {
         description: error.message,
         variant: 'destructive',
       });
-      setPendingAcceptance(false);
     } finally {
       setIsSigningUp(false);
     }
@@ -127,8 +121,8 @@ const InviteAccept = () => {
           expiresAt={invitation.expires_at}
         />
 
-        {/* Fluxo para usuário não logado - Cadastro específico para convite */}
-        {!user && (
+        {/* Formulário de Cadastro (quando usuário não existe ou não está logado) */}
+        {(!user || showSignupForm) && (
           <InviteSignupForm 
             email={invitation.email}
             companyName={invitation.companies?.name || ''}
@@ -138,16 +132,16 @@ const InviteAccept = () => {
         )}
 
         {/* Aceitar Convite (usuário logado com email correto) */}
-        {user && user.email === invitation.email && (
+        {user && user.email === invitation.email && !showSignupForm && (
           <AcceptInviteCard 
             userEmail={user.email}
             onAccept={handleAcceptInvitation}
-            isAccepting={acceptInvitation.isPending || pendingAcceptance}
+            isAccepting={acceptInvitation.isPending}
           />
         )}
 
         {/* Email não confere */}
-        {user && user.email !== invitation.email && (
+        {user && user.email !== invitation.email && !showSignupForm && (
           <EmailMismatchCard 
             userEmail={user.email}
             inviteEmail={invitation.email}
