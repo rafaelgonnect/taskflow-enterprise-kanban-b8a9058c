@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +16,7 @@ import DepartmentManagement from "./pages/DepartmentManagement";
 import Tasks from "./pages/Tasks";
 import InviteAccept from "./pages/InviteAccept";
 import NotFound from "./pages/NotFound";
+import Roadmap from "./pages/Roadmap";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,6 +77,13 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <Tasks />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/roadmap" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Roadmap />
                   </Layout>
                 </ProtectedRoute>
               } />

@@ -330,6 +330,98 @@ export type Database = {
         }
         Relationships: []
       }
+      roadmap_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          roadmap_item_id: string
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          id?: string
+          roadmap_item_id: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          roadmap_item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_comments_roadmap_item_id_fkey"
+            columns: ["roadmap_item_id"]
+            isOneToOne: false
+            referencedRelation: "roadmap_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roadmap_items: {
+        Row: {
+          actual_hours: number | null
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["roadmap_category"]
+          company_id: string
+          completed_date: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          priority: Database["public"]["Enums"]["roadmap_priority"]
+          start_date: string | null
+          status: Database["public"]["Enums"]["roadmap_status"]
+          target_date: string | null
+          title: string
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["roadmap_category"]
+          company_id: string
+          completed_date?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          priority?: Database["public"]["Enums"]["roadmap_priority"]
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["roadmap_status"]
+          target_date?: string | null
+          title: string
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          actual_hours?: number | null
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["roadmap_category"]
+          company_id?: string
+          completed_date?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          priority?: Database["public"]["Enums"]["roadmap_priority"]
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["roadmap_status"]
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
       role_hierarchy: {
         Row: {
           child_role_id: string | null
@@ -961,6 +1053,15 @@ export type Database = {
         | "create_departments"
         | "manage_department_members"
         | "view_department_analytics"
+      roadmap_category: "feature" | "improvement" | "bugfix" | "breaking_change"
+      roadmap_priority: "critical" | "high" | "medium" | "low"
+      roadmap_status:
+        | "planned"
+        | "in_progress"
+        | "in_review"
+        | "completed"
+        | "cancelled"
+        | "paused"
       user_type: "company_owner" | "employee"
     }
     CompositeTypes: {
@@ -1103,6 +1204,16 @@ export const Constants = {
         "create_departments",
         "manage_department_members",
         "view_department_analytics",
+      ],
+      roadmap_category: ["feature", "improvement", "bugfix", "breaking_change"],
+      roadmap_priority: ["critical", "high", "medium", "low"],
+      roadmap_status: [
+        "planned",
+        "in_progress",
+        "in_review",
+        "completed",
+        "cancelled",
+        "paused",
       ],
       user_type: ["company_owner", "employee"],
     },
