@@ -39,7 +39,7 @@ export const DepartmentManagement = () => {
         name: formData.name,
         description: formData.description,
         companyId: selectedCompany.id,
-        managerId: formData.managerId || undefined,
+        managerId: formData.managerId === 'no-manager' ? undefined : formData.managerId || undefined,
       });
 
       toast({
@@ -67,7 +67,7 @@ export const DepartmentManagement = () => {
         name: formData.name,
         description: formData.description,
         companyId: selectedCompany.id,
-        managerId: formData.managerId || undefined,
+        managerId: formData.managerId === 'no-manager' ? undefined : formData.managerId || undefined,
       });
 
       toast({
@@ -182,7 +182,7 @@ export const DepartmentManagement = () => {
                     <SelectValue placeholder="Selecione um gerente (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum gerente</SelectItem>
+                    <SelectItem value="no-manager">Nenhum gerente</SelectItem>
                     {usersLoading ? (
                       <SelectItem value="loading" disabled>Carregando usuários...</SelectItem>
                     ) : (
@@ -278,4 +278,41 @@ export const DepartmentManagement = () => {
       )}
     </div>
   );
+};
+
+const handleDeleteDepartment = async (department: Department) => {
+  if (!selectedCompany) return;
+
+  try {
+    await deleteDepartment.mutateAsync({
+      id: department.id,
+      companyId: selectedCompany.id,
+    });
+
+    toast({
+      title: 'Departamento excluído!',
+      description: `Departamento ${department.name} excluído com sucesso`,
+    });
+  } catch (error: any) {
+    toast({
+      title: 'Erro ao excluir departamento',
+      description: error.message,
+      variant: 'destructive',
+    });
+  }
+};
+
+const openEditDialog = (department: Department) => {
+  setEditingDepartment(department);
+  setFormData({
+    name: department.name,
+    description: department.description || '',
+    managerId: department.manager_id || 'no-manager',
+  });
+};
+
+const resetForm = () => {
+  setFormData({ name: '', description: '', managerId: '' });
+  setEditingDepartment(null);
+  setShowCreateDialog(false);
 };
