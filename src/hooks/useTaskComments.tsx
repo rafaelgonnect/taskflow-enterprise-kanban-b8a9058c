@@ -56,10 +56,22 @@ export function useCreateComment() {
         .single();
       
       if (error) throw error;
+
+      // Criar entrada no histórico para o comentário
+      await supabase
+        .from('task_history')
+        .insert({
+          task_id: taskId,
+          action: 'comment_added',
+          new_value: `Comentário adicionado: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+          changed_by: user.id,
+        });
+      
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['task-comments', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
     },
   });
 }

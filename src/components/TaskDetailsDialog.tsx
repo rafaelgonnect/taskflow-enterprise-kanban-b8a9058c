@@ -50,7 +50,7 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
   const [formData, setFormData] = useState({
     title: task?.title || '',
     description: task?.description || '',
-    priority: task?.priority || 'medium',
+    priority: task?.priority || 'medium' as 'high' | 'medium' | 'low',
     dueDate: task?.due_date ? task.due_date.split('T')[0] : '',
     estimatedHours: task?.estimated_hours?.toString() || '',
   });
@@ -75,7 +75,7 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
         id: task.id,
         title: formData.title,
         description: formData.description,
-        priority: formData.priority as 'high' | 'medium' | 'low',
+        priority: formData.priority,
         companyId,
         status: task.status,
         dueDate: formData.dueDate || undefined,
@@ -227,6 +227,8 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
       case 'title_changed': return '✏️';
       case 'timer_started': return '▶️';
       case 'timer_stopped': return '⏸️';
+      case 'comment_added': return '💬';
+      case 'attachment_added': return '📎';
       default: return '📝';
     }
   };
@@ -318,7 +320,7 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="text-sm font-medium">Prioridade</label>
-                        <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value })}>
+                        <Select value={formData.priority} onValueChange={(value: 'high' | 'medium' | 'low') => setFormData({ ...formData, priority: value })}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -604,6 +606,8 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
                           `Alterou o título para "${entry.new_value}"`}
                         {entry.action === 'timer_started' && 'Iniciou o cronômetro'}
                         {entry.action === 'timer_stopped' && 'Pausou o cronômetro'}
+                        {entry.action === 'comment_added' && entry.new_value}
+                        {entry.action === 'attachment_added' && entry.new_value}
                       </div>
                     </div>
                   </div>

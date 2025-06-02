@@ -70,10 +70,22 @@ export function useUploadAttachment() {
         .single();
       
       if (error) throw error;
+
+      // Criar entrada no histórico para o anexo
+      await supabase
+        .from('task_history')
+        .insert({
+          task_id: taskId,
+          action: 'attachment_added',
+          new_value: `Anexo adicionado: ${file.name}`,
+          changed_by: user.id,
+        });
+      
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['task-attachments', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
     },
   });
 }

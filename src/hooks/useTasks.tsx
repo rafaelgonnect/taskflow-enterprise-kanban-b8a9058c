@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -111,6 +112,7 @@ export function usePersonalTasks(companyId?: string) {
       return tasks;
     },
     enabled: !!user && !!companyId,
+    refetchInterval: 30000, // Atualizar a cada 30 segundos
   });
 }
 
@@ -196,6 +198,7 @@ export function useUpdateTask() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      queryClient.invalidateQueries({ queryKey: ['task-history', variables.id] });
     },
   });
 }
@@ -266,6 +269,7 @@ export function useUpdateTaskStatus() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
     },
   });
 }

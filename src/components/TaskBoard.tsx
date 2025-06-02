@@ -117,6 +117,11 @@ export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) =
     setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id));
   };
 
+  const handleDetails = (task: Task) => {
+    console.log('Viewing task details:', task);
+    // In real implementation, this would open the details dialog
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -146,6 +151,7 @@ export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) =
             onStatusChange={handleStatusChange}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onDetails={handleDetails}
             borderColor={column.color}
             draggedTaskId={draggedTask}
           />
