@@ -10,12 +10,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { CheckSquare, Plus, Clock, Timer } from 'lucide-react';
+import { CheckSquare, Plus, Clock, Timer, Play, Pause } from 'lucide-react';
 import { TaskColumn } from '@/components/TaskColumn';
 import { TaskDetailsDialog } from '@/components/TaskDetailsDialog';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Edit, Trash2, MoreVertical, AlertCircle, Calendar } from 'lucide-react';
+import { Edit, Trash2, MoreVertical, AlertCircle, Calendar, Eye } from 'lucide-react';
+import { useStartTimer, useStopTimer } from '@/hooks/useTaskTimer';
 
 export const PersonalTasks = () => {
   const { selectedCompany } = useCompanyContext();
@@ -37,6 +38,8 @@ export const PersonalTasks = () => {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const updateTaskStatus = useUpdateTaskStatus();
+  const startTimer = useStartTimer();
+  const stopTimer = useStopTimer();
 
   const handleCreateTask = async () => {
     if (!selectedCompany || !formData.title.trim()) return;
@@ -149,6 +152,38 @@ export const PersonalTasks = () => {
     }
   };
 
+  const handleTimerToggle = async (task: Task) => {
+    if (!selectedCompany) return;
+
+    try {
+      if (task.is_timer_running) {
+        await stopTimer.mutateAsync({ 
+          taskId: task.id, 
+          companyId: selectedCompany.id 
+        });
+        toast({
+          title: 'Timer pausado!',
+          description: 'O tempo foi registrado com sucesso.',
+        });
+      } else {
+        await startTimer.mutateAsync({ 
+          taskId: task.id, 
+          companyId: selectedCompany.id 
+        });
+        toast({
+          title: 'Timer iniciado!',
+          description: 'O cronômetro está rodando.',
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Erro no timer',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const openEditDialog = (task: Task) => {
     setEditingTask(task);
     setFormData({
@@ -206,12 +241,12 @@ export const PersonalTasks = () => {
 
         <Dialog open={showCreateDialog || !!editingTask} onOpenChange={(open) => !open && resetForm()}>
           <DialogTrigger asChild>
-            <Button onClick={() => setShowCreateDialog(true)}>
+            <Button onClick={() => setShowCreateDialog(true)} size="lg">
               <Plus className="w-4 h-4 mr-2" />
               Nova Tarefa
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
                 {editingTask ? 'Editar Tarefa' : 'Criar Nova Tarefa'}
@@ -230,6 +265,7 @@ export const PersonalTasks = () => {
                   placeholder="Ex: Revisar relatório mensal..."
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="mt-1"
                 />
               </div>
               <div>
@@ -238,13 +274,15 @@ export const PersonalTasks = () => {
                   placeholder="Descrição detalhada da tarefa..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                  className="mt-1"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium">Prioridade</label>
                   <Select value={formData.priority} onValueChange={(value: 'high' | 'medium' | 'low') => setFormData({ ...formData, priority: value })}>
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-1">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -261,18 +299,20 @@ export const PersonalTasks = () => {
                     placeholder="Ex: 2"
                     value={formData.estimatedHours}
                     onChange={(e) => setFormData({ ...formData, estimatedHours: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Data de entrega</label>
+                  <Input
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                    className="mt-1"
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Data de entrega</label>
-                <Input
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                />
-              </div>
-              <div className="flex gap-2 justify-end">
+              <div className="flex gap-2 justify-end pt-4">
                 <Button variant="outline" onClick={resetForm}>
                   Cancelar
                 </Button>
@@ -290,22 +330,18 @@ export const PersonalTasks = () => {
       </div>
 
       <Tabs defaultValue="kanban" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
           <TabsTrigger value="personal">Lista Pessoal</TabsTrigger>
-          <TabsTrigger value="department" disabled className="opacity-50">
-            Departamentais <span className="ml-1 text-xs">(em breve)</span>
-          </TabsTrigger>
-          <TabsTrigger value="company" disabled className="opacity-50">
-            Empresariais <span className="ml-1 text-xs">(em breve)</span>
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="kanban" className="space-y-6">
           {tasksLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-slate-600">Carregando tarefas...</p>
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="text-slate-600">Carregando tarefas...</p>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -356,39 +392,45 @@ export const PersonalTasks = () => {
             </CardHeader>
             <CardContent>
               {tasksLoading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-sm text-slate-600">Carregando tarefas...</p>
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex flex-col items-center space-y-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <p className="text-sm text-slate-600">Carregando tarefas...</p>
+                  </div>
                 </div>
               ) : tasks.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-slate-500">Nenhuma tarefa encontrada.</p>
+                <div className="text-center py-8">
+                  <CheckSquare className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500 mb-2">Nenhuma tarefa encontrada</p>
+                  <p className="text-sm text-slate-400">Crie sua primeira tarefa para começar!</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {tasks.map((task) => (
-                    <Card key={task.id} className="border rounded-lg">
+                    <Card 
+                      key={task.id} 
+                      className="border rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => setSelectedTask(task)}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h4 
-                                className="font-medium cursor-pointer hover:text-blue-600"
-                                onClick={() => setSelectedTask(task)}
-                              >
+                              <h4 className="font-medium text-slate-900 hover:text-blue-600 transition-colors">
                                 {task.title}
                               </h4>
                               {task.is_timer_running && (
-                                <div className="flex items-center gap-1 text-xs text-green-600">
+                                <div className="flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded-full text-xs">
                                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                                   <Timer className="w-3 h-3" />
+                                  <span className="font-medium">Ativo</span>
                                 </div>
                               )}
                             </div>
                             {task.description && (
-                              <p className="text-sm text-slate-600 mb-2">{task.description}</p>
+                              <p className="text-sm text-slate-600 mb-3 line-clamp-2">{task.description}</p>
                             )}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3 flex-wrap">
                               <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
                                 {getPriorityLabel(task.priority)}
                               </Badge>
@@ -404,59 +446,66 @@ export const PersonalTasks = () => {
                               </div>
                             </div>
                           </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
-                              <DropdownMenuItem onClick={() => setSelectedTask(task)}>
-                                Ver Detalhes
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleStatusChange(task.id, 'in_progress')}>
-                                <Clock className="w-4 h-4 mr-2" />
-                                Iniciar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEditDialog(task)}>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteTask(task)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex items-center gap-1 ml-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTimerToggle(task);
+                              }}
+                              className={task.is_timer_running ? "text-red-600 hover:text-red-700" : "text-green-600 hover:text-green-700"}
+                            >
+                              {task.is_timer_running ? (
+                                <Pause className="w-4 h-4" />
+                              ) : (
+                                <Play className="w-4 h-4" />
+                              )}
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-white border shadow-lg z-50">
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTask(task);
+                                }}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Ver Detalhes
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditDialog(task);
+                                }}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteTask(task);
+                                  }}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="department">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Clock className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 mb-2">Tarefas Departamentais</p>
-              <p className="text-sm text-slate-500">Esta funcionalidade estará disponível em breve</p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="company">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Clock className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-600 mb-2">Tarefas Empresariais</p>
-              <p className="text-sm text-slate-500">Esta funcionalidade estará disponível em breve</p>
             </CardContent>
           </Card>
         </TabsContent>

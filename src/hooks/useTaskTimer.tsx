@@ -37,10 +37,22 @@ export function useStartTimer() {
         .single();
       
       if (error) throw error;
+
+      // Criar entrada no histórico para timer iniciado
+      await supabase
+        .from('task_history')
+        .insert({
+          task_id: taskId,
+          action: 'timer_started',
+          new_value: 'Timer iniciado',
+          changed_by: user.id,
+        });
+      
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
     },
   });
 }
@@ -101,11 +113,22 @@ export function useStopTimer() {
         .eq('company_id', companyId);
       
       if (taskError) throw taskError;
+
+      // Criar entrada no histórico para timer pausado
+      await supabase
+        .from('task_history')
+        .insert({
+          task_id: taskId,
+          action: 'timer_stopped',
+          new_value: `Timer pausado (${durationMinutes} min)${description ? ` - ${description}` : ''}`,
+          changed_by: user.id,
+        });
       
       return { durationMinutes, totalTime: totalTimeResult || 0 };
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
     },
   });
 }

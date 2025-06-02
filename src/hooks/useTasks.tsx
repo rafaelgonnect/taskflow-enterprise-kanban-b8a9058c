@@ -21,40 +21,6 @@ export interface Task {
   is_timer_running?: boolean;
   current_timer_start?: string;
   total_time_minutes?: number;
-  // Relacionamentos
-  attachments?: TaskAttachment[];
-  comments?: TaskComment[];
-  history?: TaskHistory[];
-}
-
-export interface TaskAttachment {
-  id: string;
-  task_id: string;
-  file_name: string;
-  file_url: string;
-  file_size: number;
-  uploaded_by: string;
-  uploaded_at: string;
-}
-
-export interface TaskComment {
-  id: string;
-  task_id: string;
-  content: string;
-  created_by: string;
-  created_at: string;
-  user_name?: string;
-}
-
-export interface TaskHistory {
-  id: string;
-  task_id: string;
-  action: string;
-  old_value?: string;
-  new_value?: string;
-  changed_by: string;
-  changed_at: string;
-  user_name?: string;
 }
 
 export interface CreateTaskData {
@@ -248,6 +214,14 @@ export function useUpdateTaskStatus() {
       
       console.log('Atualizando status da tarefa:', { taskId, newStatus });
       
+      // Buscar dados atuais da tarefa para o histórico
+      const { data: currentTask } = await supabase
+        .from('tasks')
+        .select('status')
+        .eq('id', taskId)
+        .eq('company_id', companyId)
+        .single();
+      
       const { data, error } = await supabase
         .from('tasks')
         .update({
@@ -262,6 +236,26 @@ export function useUpdateTaskStatus() {
       if (error) {
         console.error('Erro ao atualizar status:', error);
         throw error;
+      }
+
+      // Criar entrada no histórico para mudança de status
+      if (currentTask && currentTask.status !== newStatus) {
+        const statusLabels = {
+          'todo': 'A Fazer',
+          'in_progress': 'Em Progresso', 
+          'done': 'Concluído'
+        };
+
+        await supabase
+          .from('task_history')
+          .insert({
+            task_id: taskId,
+            action: 'status_changed',
+            old_value: statusLabels[currentTask.status as keyof typeof statusLabels],
+            new_value: statusLabels[newStatus],
+            field_changed: 'status',
+            changed_by: user.id,
+          });
       }
       
       console.log('Status atualizado com sucesso:', data);
