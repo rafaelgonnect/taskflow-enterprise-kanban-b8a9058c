@@ -14,6 +14,7 @@ const Index = () => {
   const [selectedView, setSelectedView] = useState("dashboard");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [hasCheckedCompanies, setHasCheckedCompanies] = useState(false);
   const { user, loading } = useAuth();
   const { selectedCompany, companies, isLoading: companiesLoading } = useCompanyContext();
   const navigate = useNavigate();
@@ -24,12 +25,26 @@ const Index = () => {
     }
   }, [user, loading, navigate]);
 
-  // Verificar se usuário não tem empresa e mostrar modal
+  // Verificar se usuário não tem empresa e mostrar modal (com delay para evitar mostrar após aceitar convite)
   useEffect(() => {
-    if (!companiesLoading && companies && companies.length === 0 && user) {
-      setShowCompanyModal(true);
+    if (!companiesLoading && user && !hasCheckedCompanies) {
+      setHasCheckedCompanies(true);
+      
+      // Aguardar um momento para garantir que as empresas foram carregadas após aceitar convite
+      setTimeout(() => {
+        if (companies && companies.length === 0) {
+          setShowCompanyModal(true);
+        }
+      }, 1000);
     }
-  }, [companiesLoading, companies, user]);
+  }, [companiesLoading, companies, user, hasCheckedCompanies]);
+
+  // Reset do check quando o usuário muda
+  useEffect(() => {
+    if (user) {
+      setHasCheckedCompanies(false);
+    }
+  }, [user?.id]);
 
   if (loading || companiesLoading) {
     return (

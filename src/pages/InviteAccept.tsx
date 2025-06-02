@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useGetInvitationByCode, useAcceptInvitationByCode } from '@/hooks/useInvitations';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { InviteInfo } from '@/components/invite/InviteInfo';
 import { InviteSignupForm } from '@/components/invite/InviteSignupForm';
 import { AcceptInviteCard } from '@/components/invite/AcceptInviteCard';
@@ -24,6 +25,7 @@ const InviteAccept = () => {
   const navigate = useNavigate();
   const { user, signUp } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [showSignupForm, setShowSignupForm] = useState(false);
 
@@ -46,12 +48,18 @@ const InviteAccept = () => {
       // Type assertion para acessar as propriedades
       const acceptResult = result as AcceptInvitationResult;
       
+      // Invalidar queries de empresas para garantir que o contexto seja atualizado
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      
       toast({
         title: 'Convite aceito!',
         description: `Você agora faz parte da empresa ${acceptResult.company_name}`,
       });
 
-      navigate('/');
+      // Aguardar um momento para as queries serem recarregadas
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
     } catch (error: any) {
       console.error('Erro ao aceitar convite:', error);
       
