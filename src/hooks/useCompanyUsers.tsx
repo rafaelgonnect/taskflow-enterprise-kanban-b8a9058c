@@ -26,7 +26,24 @@ export function useCompanyUsers(companyId?: string) {
   return useQuery({
     queryKey: ['company-users', companyId],
     queryFn: async () => {
-      if (!user || !companyId) return [];
+      if (!user || !companyId) {
+        console.log('useCompanyUsers: user ou companyId não definidos', { user: !!user, companyId });
+        return [];
+      }
+      
+      console.log('Buscando usuários da empresa:', companyId);
+      
+      // Primeiro, vamos verificar se existem user_companies para esta empresa
+      const { data: userCompaniesData, error: userCompaniesError } = await supabase
+        .from('user_companies')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('is_active', true);
+      
+      console.log('user_companies encontrados:', userCompaniesData);
+      if (userCompaniesError) {
+        console.error('Erro ao buscar user_companies:', userCompaniesError);
+      }
       
       const { data, error } = await supabase
         .from('profiles')
@@ -40,7 +57,14 @@ export function useCompanyUsers(companyId?: string) {
         .eq('user_companies.company_id', companyId)
         .eq('user_companies.is_active', true);
       
-      if (error) throw error;
+      console.log('Resultado da query de usuários:', { data, error });
+      
+      if (error) {
+        console.error('Erro na query de usuários:', error);
+        throw error;
+      }
+      
+      console.log('Usuários encontrados:', data?.length || 0);
       return data || [];
     },
     enabled: !!user && !!companyId,

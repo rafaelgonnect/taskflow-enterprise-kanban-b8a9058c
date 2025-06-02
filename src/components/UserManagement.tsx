@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useInvitations, useCreateInvitation, Invitation } from '@/hooks/useInvitations';
 import { useCompanyUsers, useUpdateUserRole, useToggleUserStatus } from '@/hooks/useCompanyUsers';
@@ -23,6 +22,13 @@ export const UserManagement = () => {
   const createInvitation = useCreateInvitation();
   const updateUserRole = useUpdateUserRole();
   const toggleUserStatus = useToggleUserStatus();
+
+  // Debug logs
+  useEffect(() => {
+    console.log('UserManagement - selectedCompany:', selectedCompany);
+    console.log('UserManagement - users:', users);
+    console.log('UserManagement - usersLoading:', usersLoading);
+  }, [selectedCompany, users, usersLoading]);
 
   const handleInviteUser = async () => {
     if (!selectedCompany || !inviteEmail.trim()) return;
@@ -98,6 +104,9 @@ export const UserManagement = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Gestão de Usuários</h1>
           <p className="text-slate-600">Gerencie usuários e convites da empresa {selectedCompany.name}</p>
+          <p className="text-xs text-slate-500 mt-1">
+            Company ID: {selectedCompany.id} | Usuários encontrados: {users.length}
+          </p>
         </div>
 
         <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
@@ -144,11 +153,11 @@ export const UserManagement = () => {
         <TabsList>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            Usuários Ativos
+            Usuários Ativos ({users.length})
           </TabsTrigger>
           <TabsTrigger value="invitations" className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            Convites
+            Convites ({invitations.length})
           </TabsTrigger>
         </TabsList>
 
@@ -158,6 +167,15 @@ export const UserManagement = () => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-slate-600">Carregando usuários...</p>
             </div>
+          ) : users.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-slate-600 mb-2">Nenhum usuário encontrado</p>
+                <p className="text-xs text-slate-500">
+                  Debug: Company ID = {selectedCompany.id}
+                </p>
+              </CardContent>
+            </Card>
           ) : (
             <div className="grid gap-4">
               {users.map((user: any) => (
