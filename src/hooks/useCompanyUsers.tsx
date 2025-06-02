@@ -8,11 +8,13 @@ export interface CompanyUser {
   email: string;
   full_name: string;
   user_type: string;
+  is_active: boolean;
   user_companies: {
     is_active: boolean;
     joined_at: string;
   }[];
   user_roles: {
+    role_id: string;
     roles: {
       name: string;
       description: string;
@@ -75,8 +77,14 @@ export function useCompanyUsers(companyId?: string) {
         throw error;
       }
       
-      console.log('Usuários encontrados:', data?.length || 0);
-      return data || [];
+      // Transformar os dados para o formato esperado
+      const users: CompanyUser[] = (data || []).map(user => ({
+        ...user,
+        is_active: user.user_companies[0]?.is_active || false
+      }));
+      
+      console.log('Usuários encontrados:', users.length);
+      return users;
     },
     enabled: !!user && !!companyId,
   });

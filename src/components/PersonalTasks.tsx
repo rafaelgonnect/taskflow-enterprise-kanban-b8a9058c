@@ -1,24 +1,26 @@
-
 import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
-import { usePersonalTasks, useCreateTask, useUpdateTask, useDeleteTask, Task } from '@/hooks/useTasks';
+import { usePersonalTasks, useCreateTask, useUpdateTask, useDeleteTask, useUpdateTaskStatus, Task } from '@/hooks/useTasks';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { CheckSquare, Plus, Edit, Trash2, MoreVertical, Clock, AlertCircle, Calendar, Timer } from 'lucide-react';
+import { CheckSquare, Plus, Clock, Timer } from 'lucide-react';
+import { TaskColumn } from '@/components/TaskColumn';
+import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Edit, Trash2, MoreVertical, AlertCircle, Calendar } from 'lucide-react';
 
 export const PersonalTasks = () => {
   const { selectedCompany } = useCompanyContext();
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<string>('');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -31,6 +33,7 @@ export const PersonalTasks = () => {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const updateTaskStatus = useUpdateTaskStatus();
 
   const handleCreateTask = async () => {
     if (!selectedCompany || !formData.title.trim()) return;
@@ -114,24 +117,25 @@ export const PersonalTasks = () => {
     }
   };
 
-  const handleStatusChange = async (task: Task, newStatus: 'todo' | 'in_progress' | 'done') => {
+  const handleStatusChange = async (taskId: string, newStatus: 'todo' | 'in_progress' | 'done') => {
     if (!selectedCompany) return;
 
     try {
-      await updateTask.mutateAsync({
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        priority: task.priority,
+      await updateTaskStatus.mutateAsync({
+        taskId,
+        newStatus,
         companyId: selectedCompany.id,
-        status: newStatus,
-        dueDate: task.due_date || undefined,
-        estimatedHours: task.estimated_hours,
       });
+
+      const statusLabels = {
+        'todo': 'A Fazer',
+        'in_progress': 'Em Progresso', 
+        'done': 'Concluído'
+      };
 
       toast({
         title: 'Status atualizado!',
-        description: `Tarefa movida para ${getStatusLabel(newStatus)}`,
+        description: `Tarefa movida para ${statusLabels[newStatus]}`,
       });
     } catch (error: any) {
       toast({
@@ -157,6 +161,10 @@ export const PersonalTasks = () => {
     setFormData({ title: '', description: '', priority: 'medium', dueDate: '', estimatedHours: '' });
     setEditingTask(null);
     setShowCreateDialog(false);
+  };
+
+  const getTasksByStatus = (status: string) => {
+    return tasks.filter(task => task.status === status);
   };
 
   const getStatusLabel = (status: string) => {
@@ -186,10 +194,6 @@ export const PersonalTasks = () => {
     }
   };
 
-  const getTasksByStatus = (status: string) => {
-    return tasks.filter(task => task.status === status);
-  };
-
   if (!selectedCompany) {
     return (
       <div className="text-center py-8">
@@ -203,7 +207,7 @@ export const PersonalTasks = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Minhas Tarefas</h1>
-          <p className="text-slate-600">Gerencie suas tarefas pessoais e controle o tempo</p>
+          <p className="text-slate-600">Gerencie suas tarefas pessoais com drag & drop</p>
         </div>
 
         <Dialog open={showCreateDialog || !!editingTask} onOpenChange={(open) => !open && resetForm()}>
@@ -291,9 +295,10 @@ export const PersonalTasks = () => {
         </Dialog>
       </div>
 
-      <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="personal">Tarefas Pessoais</TabsTrigger>
+      <Tabs defaultValue="kanban" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="kanban">Kanban Board</TabsTrigger>
+          <TabsTrigger value="personal">Lista Pessoal</TabsTrigger>
           <TabsTrigger value="department" disabled className="opacity-50">
             Departamentais <span className="ml-1 text-xs">(em breve)</span>
           </TabsTrigger>
@@ -302,36 +307,73 @@ export const PersonalTasks = () => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="personal" className="space-y-6">
+        <TabsContent value="kanban" className="space-y-6">
           {tasksLoading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-slate-600">Carregando tarefas...</p>
             </div>
-          ) : tasks.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <CheckSquare className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-600 mb-2">Nenhuma tarefa encontrada</p>
-                <p className="text-sm text-slate-500">Crie sua primeira tarefa para começar</p>
-              </CardContent>
-            </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Coluna A Fazer */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-slate-400"></div>
-                    A Fazer ({getTasksByStatus('todo').length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {getTasksByStatus('todo').map((task) => (
-                    <Card key={task.id} className="border-l-4 border-l-slate-400">
+              <TaskColumn
+                title="A Fazer"
+                status="todo"
+                tasks={getTasksByStatus('todo')}
+                onStatusChange={handleStatusChange}
+                onEdit={openEditDialog}
+                onDelete={handleDeleteTask}
+                borderColor="border-slate-300"
+                draggedTaskId={draggedTaskId}
+              />
+              <TaskColumn
+                title="Em Progresso"
+                status="in_progress"
+                tasks={getTasksByStatus('in_progress')}
+                onStatusChange={handleStatusChange}
+                onEdit={openEditDialog}
+                onDelete={handleDeleteTask}
+                borderColor="border-blue-300"
+                draggedTaskId={draggedTaskId}
+              />
+              <TaskColumn
+                title="Concluído"
+                status="done"
+                tasks={getTasksByStatus('done')}
+                onStatusChange={handleStatusChange}
+                onEdit={openEditDialog}
+                onDelete={handleDeleteTask}
+                borderColor="border-green-300"
+                draggedTaskId={draggedTaskId}
+              />
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="personal">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckSquare className="w-5 h-5" />
+                Tarefas Pessoais ({tasks.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {tasksLoading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-sm text-slate-600">Carregando tarefas...</p>
+                </div>
+              ) : tasks.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-slate-500">Nenhuma tarefa encontrada.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tasks.map((task) => (
+                    <Card key={task.id} className="border rounded-lg">
                       <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-sm">{task.title}</h4>
+                        <div className="flex items-start justify-between">
+                          <h4 className="font-medium">{task.title}</h4>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">
@@ -339,7 +381,7 @@ export const PersonalTasks = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleStatusChange(task, 'in_progress')}>
+                              <DropdownMenuItem onClick={() => handleStatusChange(task.id, 'in_progress')}>
                                 <Clock className="w-4 h-4 mr-2" />
                                 Iniciar
                               </DropdownMenuItem>
@@ -358,166 +400,26 @@ export const PersonalTasks = () => {
                           </DropdownMenu>
                         </div>
                         {task.description && (
-                          <p className="text-xs text-slate-600 mb-3">{task.description}</p>
+                          <p className="text-sm text-slate-600">{task.description}</p>
                         )}
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mt-2">
                           <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
                             {getPriorityLabel(task.priority)}
                           </Badge>
-                          {task.estimated_hours && (
-                            <Badge variant="outline" className="text-xs">
-                              <Timer className="w-3 h-3 mr-1" />
-                              {task.estimated_hours}h
-                            </Badge>
+                          {task.due_date && (
+                            <div className="flex items-center gap-1 text-xs text-slate-500">
+                              <Calendar className="w-3 h-3" />
+                              <span>{new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
+                            </div>
                           )}
                         </div>
-                        {task.due_date && (
-                          <div className="flex items-center gap-1 text-xs text-slate-500">
-                            <Calendar className="w-3 h-3" />
-                            <span>{new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
-                          </div>
-                        )}
                       </CardContent>
                     </Card>
                   ))}
-                </CardContent>
-              </Card>
-
-              {/* Coluna Em Progresso */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-blue-600 flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    Em Progresso ({getTasksByStatus('in_progress').length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {getTasksByStatus('in_progress').map((task) => (
-                    <Card key={task.id} className="border-l-4 border-l-blue-500">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-sm">{task.title}</h4>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleStatusChange(task, 'done')}>
-                                <CheckSquare className="w-4 h-4 mr-2" />
-                                Concluir
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleStatusChange(task, 'todo')}>
-                                <AlertCircle className="w-4 h-4 mr-2" />
-                                Voltar para A Fazer
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEditDialog(task)}>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteTask(task)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        {task.description && (
-                          <p className="text-xs text-slate-600 mb-3">{task.description}</p>
-                        )}
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
-                            {getPriorityLabel(task.priority)}
-                          </Badge>
-                          {task.estimated_hours && (
-                            <Badge variant="outline" className="text-xs">
-                              <Timer className="w-3 h-3 mr-1" />
-                              {task.estimated_hours}h
-                            </Badge>
-                          )}
-                        </div>
-                        {task.due_date && (
-                          <div className="flex items-center gap-1 text-xs text-slate-500">
-                            <Calendar className="w-3 h-3" />
-                            <span>{new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Coluna Concluído */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-green-600 flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    Concluído ({getTasksByStatus('done').length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {getTasksByStatus('done').map((task) => (
-                    <Card key={task.id} className="border-l-4 border-l-green-500 opacity-80">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-sm line-through">{task.title}</h4>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleStatusChange(task, 'in_progress')}>
-                                <Clock className="w-4 h-4 mr-2" />
-                                Reabrir
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEditDialog(task)}>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteTask(task)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        {task.description && (
-                          <p className="text-xs text-slate-600 mb-3">{task.description}</p>
-                        )}
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
-                            {getPriorityLabel(task.priority)}
-                          </Badge>
-                          {task.estimated_hours && (
-                            <Badge variant="outline" className="text-xs">
-                              <Timer className="w-3 h-3 mr-1" />
-                              {task.estimated_hours}h
-                            </Badge>
-                          )}
-                        </div>
-                        {task.due_date && (
-                          <div className="flex items-center gap-1 text-xs text-slate-500">
-                            <Calendar className="w-3 h-3" />
-                            <span>{new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="department">

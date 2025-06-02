@@ -18,6 +18,40 @@ export interface Task {
   updated_at: string;
   estimated_hours?: number;
   actual_hours?: number;
+  // Novos campos para melhorias
+  attachments?: TaskAttachment[];
+  comments?: TaskComment[];
+  history?: TaskHistory[];
+}
+
+export interface TaskAttachment {
+  id: string;
+  task_id: string;
+  file_name: string;
+  file_url: string;
+  file_size: number;
+  uploaded_by: string;
+  uploaded_at: string;
+}
+
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  content: string;
+  created_by: string;
+  created_at: string;
+  user_name?: string;
+}
+
+export interface TaskHistory {
+  id: string;
+  task_id: string;
+  action: string;
+  old_value?: string;
+  new_value?: string;
+  changed_by: string;
+  changed_at: string;
+  user_name?: string;
 }
 
 export interface CreateTaskData {
@@ -65,7 +99,14 @@ export function usePersonalTasks(companyId?: string) {
         throw error;
       }
       
-      return data || [];
+      // Garantir que os dados estão no tipo correto
+      const tasks: Task[] = (data || []).map(task => ({
+        ...task,
+        status: task.status as 'todo' | 'in_progress' | 'done',
+        priority: task.priority as 'high' | 'medium' | 'low'
+      }));
+      
+      return tasks;
     },
     enabled: !!user && !!companyId,
   });
@@ -180,6 +221,46 @@ export function useDeleteTask() {
       }
       
       console.log('Tarefa deletada com sucesso');
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+    },
+  });
+}
+
+// Hook para atualizar status via drag and drop
+export function useUpdateTaskStatus() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  return useMutation({
+    mutationFn: async ({ taskId, newStatus, companyId }: { 
+      taskId: string; 
+      newStatus: 'todo' | 'in_progress' | 'done';
+      companyId: string;
+    }) => {
+      if (!user) throw new Error('Usuário não autenticado');
+      
+      console.log('Atualizando status da tarefa:', { taskId, newStatus });
+      
+      const { data, error } = await supabase
+        .from('tasks')
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', taskId)
+        .eq('company_id', companyId)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Erro ao atualizar status:', error);
+        throw error;
+      }
+      
+      console.log('Status atualizado com sucesso:', data);
+      return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });

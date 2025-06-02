@@ -140,12 +140,12 @@ export const UserManagement = () => {
                     <div className="flex items-center gap-3">
                       <Avatar>
                         <AvatarFallback>
-                          {user.profiles?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                          {user.full_name?.charAt(0)?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium">{user.profiles?.full_name || 'Nome não informado'}</p>
-                        <p className="text-sm text-slate-500">{user.profiles?.email}</p>
+                        <p className="font-medium">{user.full_name || 'Nome não informado'}</p>
+                        <p className="text-sm text-slate-500">{user.email}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
