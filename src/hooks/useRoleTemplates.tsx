@@ -31,10 +31,18 @@ export function useRoleTemplates() {
         throw error;
       }
       
-      // Converter permissions de JSON para array
+      // Converter permissions de JSON para array de strings e garantir tipos corretos
       const templates: RoleTemplate[] = (data || []).map(template => ({
-        ...template,
-        permissions: Array.isArray(template.permissions) ? template.permissions : [],
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        icon: template.icon || 'shield',
+        color: template.color || '#6366f1',
+        permissions: Array.isArray(template.permissions) 
+          ? template.permissions.filter((p): p is string => typeof p === 'string')
+          : [],
+        is_active: template.is_active ?? true,
+        created_at: template.created_at,
       }));
       
       console.log('Templates encontrados:', templates.length);
