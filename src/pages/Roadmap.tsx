@@ -15,6 +15,7 @@ import { DocumentationTab } from '@/components/roadmap/DocumentationTab';
 import { AIAnalysisPanel } from '@/components/roadmap/AIAnalysisPanel';
 import { AIChatAssistant } from '@/components/roadmap/AIChatAssistant';
 import { AIAutoGeneration } from '@/components/roadmap/AIAutoGeneration';
+import { RoadmapSeeder } from '@/components/roadmap/RoadmapSeeder';
 
 const Roadmap = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -91,6 +92,13 @@ const Roadmap = () => {
           </Button>
         </div>
       </div>
+
+      {/* Seeder para dados iniciais */}
+      {items.length === 0 && (
+        <div className="mb-6">
+          <RoadmapSeeder />
+        </div>
+      )}
 
       {/* Filtros */}
       <Card className="mb-6">
