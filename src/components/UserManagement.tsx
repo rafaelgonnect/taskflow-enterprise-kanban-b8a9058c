@@ -1,65 +1,63 @@
 
 import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
-import { useCompanyUsers, useUpdateUserRole, CompanyUser } from '@/hooks/useCompanyUsers';
-import { useRoles } from '@/hooks/useRoles';
+import { useCompanyUsers } from '@/hooks/useCompanyUsers';
+import { useCreateInvitation, useInvitations } from '@/hooks/useInvitations';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Plus, Edit, MoreVertical, UserCheck, Clock } from 'lucide-react';
+import { Users, Plus, Mail, CheckCircle, Clock, X, UserX } from 'lucide-react';
 
 export const UserManagement = () => {
   const { selectedCompany } = useCompanyContext();
   const { toast } = useToast();
-  const [editingUser, setEditingUser] = useState<CompanyUser | null>(null);
-  const [selectedRole, setSelectedRole] = useState('');
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
 
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers(selectedCompany?.id);
-  const { data: roles = [], isLoading: rolesLoading } = useRoles(selectedCompany?.id);
-  const updateUserRole = useUpdateUserRole();
+  const { data: invitations = [], isLoading: invitationsLoading } = useInvitations(selectedCompany?.id);
+  const createInvitation = useCreateInvitation();
 
-  const handleUpdateUserRole = async () => {
-    if (!selectedCompany || !editingUser || !selectedRole) return;
+  const handleInviteUser = async () => {
+    if (!selectedCompany || !inviteEmail.trim()) return;
 
     try {
-      await updateUserRole.mutateAsync({
-        userId: editingUser.id,
+      await createInvitation.mutateAsync({
+        email: inviteEmail.trim(),
         companyId: selectedCompany.id,
-        roleId: selectedRole,
       });
 
       toast({
-        title: 'Papel atualizado!',
-        description: `Papel do usuário ${editingUser.full_name} atualizado com sucesso`,
+        title: 'Convite enviado!',
+        description: `Convite enviado para ${inviteEmail}`,
       });
 
-      setEditingUser(null);
-      setSelectedRole('');
+      setInviteEmail('');
+      setShowInviteDialog(false);
     } catch (error: any) {
       toast({
-        title: 'Erro ao atualizar papel',
+        title: 'Erro ao enviar convite',
         description: error.message,
         variant: 'destructive',
       });
     }
   };
 
-  const openEditDialog = (user: CompanyUser) => {
-    setEditingUser(user);
-    const userRole = user.user_roles?.[0]?.roles;
-    if (userRole) {
-      const role = roles.find(r => r.name === userRole.name);
-      setSelectedRole(role?.id || '');
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pendente</Badge>;
+      case 'accepted':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200"><CheckCircle className="w-3 h-3 mr-1" />Aceito</Badge>;
+      case 'expired':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200"><X className="w-3 h-3 mr-1" />Expirado</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
-  };
-
-  const resetForm = () => {
-    setEditingUser(null);
-    setSelectedRole('');
   };
 
   if (!selectedCompany) {
@@ -74,137 +72,147 @@ export const UserManagement = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Gestão de Usuários</h1>
-          <p className="text-slate-600">Gerencie usuários da empresa {selectedCompany.name}</p>
+          <h1 className="text-2xl font-bold text-slate-900">Gerenciar Usuários</h1>
+          <p className="text-slate-600">Gerencie os usuários e convites da empresa</p>
         </div>
 
-        <Button disabled className="opacity-50 cursor-not-allowed">
-          <Plus className="w-4 h-4 mr-2" />
-          Convidar Usuário <span className="ml-1 text-xs">(em breve)</span>
-        </Button>
-      </div>
-
-      <Dialog open={!!editingUser} onOpenChange={(open) => !open && resetForm()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Gerenciar Usuário</DialogTitle>
-            <DialogDescription>
-              Edite as permissões e papel do usuário na empresa
-            </DialogDescription>
-          </DialogHeader>
-          {editingUser && (
+        <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Convidar Usuário
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Convidar Novo Usuário</DialogTitle>
+              <DialogDescription>
+                Envie um convite por email para um novo usuário se juntar à empresa
+              </DialogDescription>
+            </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <label className="text-sm font-medium">Usuário</label>
-                <div className="p-3 bg-slate-50 rounded-md">
-                  <p className="font-medium">{editingUser.full_name}</p>
-                  <p className="text-sm text-slate-600">{editingUser.email}</p>
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Papel na empresa</label>
-                <Select value={selectedRole} onValueChange={setSelectedRole}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um papel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rolesLoading ? (
-                      <SelectItem value="loading" disabled>Carregando papéis...</SelectItem>
-                    ) : (
-                      roles.map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.name}
-                          {role.description && (
-                            <span className="text-slate-500 ml-2">- {role.description}</span>
-                          )}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium">Email do usuário</label>
+                <Input
+                  type="email"
+                  placeholder="usuario@empresa.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                />
               </div>
               <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={resetForm}>
+                <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
                   Cancelar
                 </Button>
                 <Button 
-                  onClick={handleUpdateUserRole}
-                  disabled={!selectedRole || updateUserRole.isPending}
+                  onClick={handleInviteUser}
+                  disabled={!inviteEmail.trim() || createInvitation.isPending}
                 >
-                  {updateUserRole.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                  {createInvitation.isPending ? 'Enviando...' : 'Enviar Convite'}
                 </Button>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      {usersLoading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-slate-600">Carregando usuários...</p>
-        </div>
-      ) : users.length === 0 ? (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Usuários Ativos */}
         <Card>
-          <CardContent className="p-6 text-center">
-            <Users className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 mb-2">Nenhum usuário encontrado</p>
-            <p className="text-sm text-slate-500">Convide usuários para começar</p>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Usuários Ativos ({users.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {usersLoading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-sm text-slate-600">Carregando usuários...</p>
+              </div>
+            ) : users.length === 0 ? (
+              <p className="text-center py-4 text-slate-500">Nenhum usuário encontrado</p>
+            ) : (
+              <div className="space-y-3">
+                {users.map((user) => (
+                  <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarFallback>
+                          {user.profiles?.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{user.profiles?.full_name || 'Nome não informado'}</p>
+                        <p className="text-sm text-slate-500">{user.profiles?.email}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={user.is_active ? "default" : "secondary"}>
+                        {user.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        disabled={true}
+                        className="opacity-50 cursor-not-allowed"
+                      >
+                        <UserX className="w-4 h-4" />
+                        <span className="ml-1 text-xs">(em breve)</span>
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid gap-4">
-          {users.map((user) => (
-            <Card key={user.id}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-medium text-slate-900">{user.full_name}</h3>
-                      <Badge variant="outline">{user.email}</Badge>
-                      {user.user_roles?.[0]?.roles && (
-                        <Badge variant="secondary">
-                          {user.user_roles[0].roles.name}
-                        </Badge>
-                      )}
+
+        {/* Convites Pendentes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              Convites ({invitations.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {invitationsLoading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-sm text-slate-600">Carregando convites...</p>
+              </div>
+            ) : invitations.length === 0 ? (
+              <p className="text-center py-4 text-slate-500">Nenhum convite encontrado</p>
+            ) : (
+              <div className="space-y-3">
+                {invitations.map((invitation) => (
+                  <div key={invitation.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{invitation.email}</p>
+                      <p className="text-sm text-slate-500">
+                        Convidado por {invitation.invited_by_profile?.full_name}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {new Date(invitation.created_at).toLocaleDateString('pt-BR')}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-slate-500">
-                      <div className="flex items-center gap-1">
-                        <UserCheck className="w-4 h-4" />
-                        <span>Tipo: {user.user_type === 'company_owner' ? 'Proprietário' : 'Funcionário'}</span>
-                      </div>
-                      {user.user_companies?.[0]?.joined_at && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>Desde {new Date(user.user_companies[0].joined_at).toLocaleDateString('pt-BR')}</span>
-                        </div>
+                    <div className="text-right">
+                      {getStatusBadge(invitation.status)}
+                      {invitation.status === 'pending' && (
+                        <p className="text-xs text-slate-400 mt-1">
+                          Expira em {new Date(invitation.expires_at).toLocaleDateString('pt-BR')}
+                        </p>
                       )}
                     </div>
                   </div>
-                  
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openEditDialog(user)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Gerenciar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem disabled className="opacity-50 cursor-not-allowed">
-                        <Users className="w-4 h-4 mr-2" />
-                        Desativar (em breve)
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
