@@ -48,8 +48,41 @@ export function useRoadmapSeeder() {
     }
   };
 
+  const syncDocumentation = async () => {
+    if (!user || !selectedCompany?.id) {
+      toast({
+        title: 'Erro',
+        description: 'Usuário ou empresa não encontrados',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      console.log('Sincronizando documentação...', initialDocumentation);
+      
+      // Criar/atualizar apenas a documentação
+      for (const doc of initialDocumentation) {
+        await createDocumentation.mutateAsync(doc);
+      }
+
+      toast({
+        title: 'Sucesso',
+        description: 'Documentação sincronizada com sucesso!',
+      });
+    } catch (error) {
+      console.error('Erro ao sincronizar documentação:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao sincronizar documentação',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return {
     seedRoadmapData,
+    syncDocumentation,
     isLoading: createRoadmapItem.isPending || createDocumentation.isPending,
   };
 }

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRoadmapDocumentation, useDocumentationByType } from '@/hooks/useRoadmapDocumentation';
+import { useRoadmapSeeder } from '@/hooks/useRoadmapSeeder';
 import { DocumentationEditor } from './DocumentationEditor';
 import { DocumentationType } from '@/types/roadmap';
 import { Plus, FileText, Database, Settings, TestTube, Code, BookOpen, RefreshCw } from 'lucide-react';
@@ -21,6 +21,7 @@ export const DocumentationTab = () => {
   const queryClient = useQueryClient();
   const { selectedCompany } = useCompanyContext();
   const { toast } = useToast();
+  const { syncDocumentation, isLoading: isSeeding } = useRoadmapSeeder();
 
   const { data: allDocs = [] } = useRoadmapDocumentation();
   const { data: typeDocs = [] } = useDocumentationByType(selectedType);
@@ -72,7 +73,10 @@ export const DocumentationTab = () => {
   const handleRefreshDocumentation = async () => {
     setIsRefreshing(true);
     try {
-      // Invalidar todas as queries relacionadas à documentação
+      // Primeiro sincronizar a documentação inicial
+      await syncDocumentation();
+      
+      // Depois invalidar as queries para recarregar
       await queryClient.invalidateQueries({ 
         queryKey: ['roadmap-documentation', selectedCompany?.id] 
       });
@@ -82,7 +86,7 @@ export const DocumentationTab = () => {
       
       toast({
         title: 'Documentação atualizada',
-        description: 'Os dados da documentação foram recarregados com sucesso',
+        description: 'Os dados da documentação foram recarregados e sincronizados com sucesso',
       });
     } catch (error) {
       toast({
@@ -109,10 +113,10 @@ export const DocumentationTab = () => {
           <Button 
             variant="outline" 
             onClick={handleRefreshDocumentation}
-            disabled={isRefreshing}
+            disabled={isRefreshing || isSeeding}
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Atualizando...' : 'Atualizar'}
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing || isSeeding ? 'animate-spin' : ''}`} />
+            {isRefreshing || isSeeding ? 'Sincronizando...' : 'Sincronizar'}
           </Button>
           <Button onClick={() => setIsEditorOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
@@ -185,7 +189,7 @@ export const DocumentationTab = () => {
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">Nenhuma documentação encontrada</p>
               <p className="text-sm text-gray-400 mt-1">
-                Clique em "Nova Documentação" para começar
+                Clique em "Sincronizar" para carregar a documentação inicial ou "Nova Documentação" para criar
               </p>
             </div>
           ) : (
@@ -219,7 +223,6 @@ export const DocumentationTab = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => {
-                          // TODO: Abrir editor com este documento
                           console.log('Editando documento:', doc.id);
                         }}
                       >
