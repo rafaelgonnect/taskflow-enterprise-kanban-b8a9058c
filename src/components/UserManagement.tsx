@@ -8,19 +8,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Users, UserPlus, Shield, Clock, Check, X, Copy, MessageCircle } from 'lucide-react';
+import { UserPermissionsDialog } from './UserPermissionsDialog';
+import { Mail, Users, UserPlus, Shield, Clock, Check, X, Copy, MessageCircle, MoreVertical, Settings, UserCog } from 'lucide-react';
 
 export const UserManagement = () => {
   const { selectedCompany } = useCompanyContext();
   const { toast } = useToast();
   const [inviteEmail, setInviteEmail] = useState('');
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
 
   const { data: invitations = [], isLoading: invitationsLoading } = useInvitations(selectedCompany?.id);
   const { data: users = [], isLoading: usersLoading } = useCompanyUsers(selectedCompany?.id);
   const createInvitation = useCreateInvitation();
-  const updateUserRole = useUpdateUserRole();
   const toggleUserStatus = useToggleUserStatus();
 
   // Debug logs
@@ -76,6 +79,11 @@ export const UserManagement = () => {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleManagePermissions = (user: any) => {
+    setSelectedUser(user);
+    setShowPermissionsDialog(true);
   };
 
   const copyToClipboard = (text: string, type: string) => {
@@ -182,12 +190,17 @@ export const UserManagement = () => {
                 <Card key={user.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium text-slate-900">{user.full_name}</h3>
-                        <p className="text-sm text-slate-600">{user.email}</p>
-                        <div className="flex items-center gap-2 mt-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-medium text-slate-900">{user.full_name}</h3>
+                          <Badge variant={user.user_type === 'company_owner' ? 'default' : 'secondary'}>
+                            {user.user_type === 'company_owner' ? 'Proprietário' : 'Funcionário'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-slate-600 mb-3">{user.email}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
                           {user.user_roles.map((ur: any, index: number) => (
-                            <Badge key={index} variant="secondary">
+                            <Badge key={index} variant="outline">
                               <Shield className="w-3 h-3 mr-1" />
                               {ur.roles.name}
                             </Badge>
@@ -197,14 +210,31 @@ export const UserManagement = () => {
                           </Badge>
                         </div>
                       </div>
+                      
                       <div className="flex items-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleToggleUserStatus(user.id, user.user_companies[0]?.is_active)}
+                          onClick={() => handleManagePermissions(user)}
                         >
-                          {user.user_companies[0]?.is_active ? 'Desativar' : 'Ativar'}
+                          <UserCog className="w-4 h-4 mr-2" />
+                          Gerenciar
                         </Button>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleToggleUserStatus(user.id, user.user_companies[0]?.is_active)}
+                            >
+                              {user.user_companies[0]?.is_active ? 'Desativar' : 'Ativar'} Usuário
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </CardContent>
@@ -331,6 +361,19 @@ export const UserManagement = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Dialog de Permissões */}
+      {selectedUser && (
+        <UserPermissionsDialog
+          isOpen={showPermissionsDialog}
+          onClose={() => {
+            setShowPermissionsDialog(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+          companyId={selectedCompany.id}
+        />
+      )}
     </div>
   );
 };
