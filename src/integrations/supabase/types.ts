@@ -395,6 +395,52 @@ export type Database = {
           },
         ]
       }
+      user_departments: {
+        Row: {
+          assigned_at: string
+          company_id: string
+          department_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          company_id: string
+          department_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          company_id?: string
+          department_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_departments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_departments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           assigned_at: string

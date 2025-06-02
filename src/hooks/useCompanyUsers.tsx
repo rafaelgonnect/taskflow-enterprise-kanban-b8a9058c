@@ -18,6 +18,12 @@ export interface CompanyUser {
       description: string;
     };
   }[];
+  user_departments: {
+    departments: {
+      name: string;
+      description: string;
+    };
+  }[];
 }
 
 export function useCompanyUsers(companyId?: string) {
@@ -33,19 +39,6 @@ export function useCompanyUsers(companyId?: string) {
       
       console.log('Buscando usuários da empresa:', companyId);
       
-      // Primeiro, vamos verificar se existem user_companies para esta empresa
-      const { data: userCompaniesData, error: userCompaniesError } = await supabase
-        .from('user_companies')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('is_active', true);
-      
-      console.log('user_companies encontrados:', userCompaniesData);
-      if (userCompaniesError) {
-        console.error('Erro ao buscar user_companies:', userCompaniesError);
-      }
-      
-      // Query corrigida - especificando os relacionamentos corretamente
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -60,6 +53,12 @@ export function useCompanyUsers(companyId?: string) {
           user_roles!user_roles_user_id_fkey(
             role_id,
             roles!user_roles_role_id_fkey(
+              name,
+              description
+            )
+          ),
+          user_departments!user_departments_user_id_fkey(
+            departments!user_departments_department_id_fkey(
               name,
               description
             )
@@ -99,23 +98,26 @@ export function useUpdateUserRole() {
     }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
-      // Remover papel atual
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('company_id', companyId);
+      console.log('Atualizando papel do usuário:', { userId, companyId, roleId });
       
-      // Adicionar novo papel
+      // Com a nova constraint única, fazemos um upsert
       const { error } = await supabase
         .from('user_roles')
-        .insert({
+        .upsert({
           user_id: userId,
           company_id: companyId,
           role_id: roleId,
+          assigned_by: user.id,
+        }, {
+          onConflict: 'user_id,company_id'
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao atualizar papel:', error);
+        throw error;
+      }
+      
+      console.log('Papel atualizado com sucesso');
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['company-users', variables.companyId] });
@@ -139,13 +141,20 @@ export function useToggleUserStatus() {
     }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
+      console.log('Alterando status do usuário:', { userId, companyId, isActive });
+      
       const { error } = await supabase
         .from('user_companies')
         .update({ is_active: isActive })
         .eq('user_id', userId)
         .eq('company_id', companyId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao alterar status:', error);
+        throw error;
+      }
+      
+      console.log('Status alterado com sucesso');
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['company-users', variables.companyId] });
