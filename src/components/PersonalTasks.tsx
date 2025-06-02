@@ -59,17 +59,7 @@ export const PersonalTasks = () => {
         description: `Tarefa ${formData.title} criada com sucesso`,
       });
 
-      setFormData({
-        title: '',
-        description: '',
-        priority: 'medium',
-        dueDate: '',
-        estimatedHours: '',
-        taskType: 'personal',
-        departmentId: '',
-        isPublic: false,
-      });
-      setShowCreateDialog(false);
+      resetForm();
     } catch (error: any) {
       toast({
         title: 'Erro ao criar tarefa',
@@ -330,9 +320,8 @@ export const PersonalTasks = () => {
         </Card>
       ) : (
         <TaskBoard 
-          tasks={tasks} 
-          onEditTask={openEditDialog}
-          onDeleteTask={handleDeleteTask}
+          companyId={selectedCompany.id}
+          userId="current"
         />
       )}
     </div>
