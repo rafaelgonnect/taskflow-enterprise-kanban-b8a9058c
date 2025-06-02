@@ -2,17 +2,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { useCompany } from '@/contexts/CompanyContext';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 import { RoadmapStats } from '@/types/roadmap';
 
 export function useRoadmapStats() {
   const { user } = useAuth();
-  const { currentCompany } = useCompany();
+  const { selectedCompany } = useCompanyContext();
 
   return useQuery({
-    queryKey: ['roadmap-stats', currentCompany?.id],
+    queryKey: ['roadmap-stats', selectedCompany?.id],
     queryFn: async (): Promise<RoadmapStats> => {
-      if (!user || !currentCompany?.id) {
+      if (!user || !selectedCompany?.id) {
         return {
           total: 0,
           by_status: {
@@ -43,7 +43,7 @@ export function useRoadmapStats() {
       const { data, error } = await supabase
         .from('roadmap_items')
         .select('status, category, priority, created_at, completed_date')
-        .eq('company_id', currentCompany.id);
+        .eq('company_id', selectedCompany.id);
 
       if (error) throw error;
 
@@ -112,6 +112,6 @@ export function useRoadmapStats() {
         avg_completion_time
       };
     },
-    enabled: !!user && !!currentCompany?.id,
+    enabled: !!user && !!selectedCompany?.id,
   });
 }

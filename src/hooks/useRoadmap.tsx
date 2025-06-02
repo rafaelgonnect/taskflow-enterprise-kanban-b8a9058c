@@ -2,28 +2,28 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { useCompany } from '@/contexts/CompanyContext';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 import { RoadmapItem, RoadmapFilters } from '@/types/roadmap';
 import { useToast } from '@/hooks/use-toast';
 
 export function useRoadmap(filters?: RoadmapFilters) {
   const { user } = useAuth();
-  const { currentCompany } = useCompany();
+  const { selectedCompany } = useCompanyContext();
 
   return useQuery({
-    queryKey: ['roadmap', currentCompany?.id, filters],
+    queryKey: ['roadmap', selectedCompany?.id, filters],
     queryFn: async () => {
-      if (!user || !currentCompany?.id) {
+      if (!user || !selectedCompany?.id) {
         console.log('useRoadmap: user ou company não definidos');
         return [];
       }
 
-      console.log('Buscando itens do roadmap para empresa:', currentCompany.id);
+      console.log('Buscando itens do roadmap para empresa:', selectedCompany.id);
 
       let query = supabase
         .from('roadmap_items')
         .select('*')
-        .eq('company_id', currentCompany.id)
+        .eq('company_id', selectedCompany.id)
         .order('created_at', { ascending: false });
 
       // Aplicar filtros
@@ -56,23 +56,29 @@ export function useRoadmap(filters?: RoadmapFilters) {
       console.log('Itens do roadmap encontrados:', data?.length || 0);
       return data || [];
     },
-    enabled: !!user && !!currentCompany?.id,
+    enabled: !!user && !!selectedCompany?.id,
   });
 }
 
 export function useCreateRoadmapItem() {
   const queryClient = useQueryClient();
-  const { currentCompany } = useCompany();
+  const { selectedCompany } = useCompanyContext();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   return useMutation({
     mutationFn: async (itemData: Omit<RoadmapItem, 'id' | 'created_at' | 'updated_at' | 'company_id' | 'created_by'>) => {
+      if (!user || !selectedCompany?.id) {
+        throw new Error('Usuário ou empresa não encontrados');
+      }
+
       const { data, error } = await supabase
         .from('roadmap_items')
-        .insert([{
+        .insert({
           ...itemData,
-          company_id: currentCompany?.id,
-        }])
+          company_id: selectedCompany.id,
+          created_by: user.id,
+        })
         .select()
         .single();
 
@@ -81,6 +87,7 @@ export function useCreateRoadmapItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap'] });
+      queryClient.invalidateQueries({ queryKey: ['roadmap-stats'] });
       toast({
         title: 'Item criado',
         description: 'Item do roadmap criado com sucesso',
@@ -114,6 +121,7 @@ export function useUpdateRoadmapItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap'] });
+      queryClient.invalidateQueries({ queryKey: ['roadmap-stats'] });
       toast({
         title: 'Item atualizado',
         description: 'Item do roadmap atualizado com sucesso',
@@ -144,6 +152,7 @@ export function useDeleteRoadmapItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roadmap'] });
+      queryClient.invalidateQueries({ queryKey: ['roadmap-stats'] });
       toast({
         title: 'Item excluído',
         description: 'Item do roadmap excluído com sucesso',
