@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Layout } from "@/components/Layout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CompanySettings from "./pages/CompanySettings";
@@ -37,22 +38,30 @@ const App = () => (
               <Route path="/invite/:inviteCode" element={<InviteAccept />} />
               <Route path="/" element={
                 <ProtectedRoute>
-                  <Index />
+                  <Layout>
+                    <Index />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/company-settings" element={
                 <ProtectedRoute>
-                  <CompanySettings />
+                  <Layout>
+                    <CompanySettings />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/users" element={
                 <ProtectedRoute>
-                  <UserManagement />
+                  <Layout>
+                    <UserManagement />
+                  </Layout>
                 </ProtectedRoute>
               } />
               <Route path="/departments" element={
                 <ProtectedRoute>
-                  <DepartmentManagement />
+                  <Layout>
+                    <DepartmentManagement />
+                  </Layout>
                 </ProtectedRoute>
               } />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
