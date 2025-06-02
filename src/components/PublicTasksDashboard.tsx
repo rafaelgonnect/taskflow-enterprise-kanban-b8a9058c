@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { usePublicDepartmentTasks, usePublicCompanyTasks, useAcceptPublicTask } from '@/hooks/usePublicTasks';
+import { usePublicCompanyTasks, useAcceptPublicTask } from '@/hooks/usePublicTasks';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useToast } from '@/hooks/use-toast';
-import { Building, Users, Calendar, Clock, CheckCircle, User } from 'lucide-react';
+import { Building, Users, Calendar, Clock, User } from 'lucide-react';
 import { Task } from '@/hooks/useTasks';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PublicTasksDashboardProps {
   companyId: string;
@@ -19,19 +21,40 @@ export const PublicTasksDashboard = ({ companyId }: PublicTasksDashboardProps) =
   const { data: companyTasks = [] } = usePublicCompanyTasks(companyId);
   const acceptTask = useAcceptPublicTask();
 
-  // Sempre chamar hooks da mesma forma - buscar tarefas de todos os departamentos
-  const allDepartmentTasksQueries = departments.map(dept => ({
-    departmentId: dept.id,
-    query: usePublicDepartmentTasks(dept.id)
-  }));
-  
-  // Combinar todas as tarefas departamentais
-  const allDepartmentTasks = allDepartmentTasksQueries.reduce((acc, { query }) => {
-    if (query.data) {
-      return [...acc, ...query.data];
-    }
-    return acc;
-  }, [] as Task[]);
+  // Buscar todas as tarefas departamentais públicas de uma vez
+  const { data: allDepartmentTasks = [] } = useQuery({
+    queryKey: ['all-public-department-tasks', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      
+      console.log('Buscando todas as tarefas departamentais públicas da empresa:', companyId);
+      
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('task_type', 'department')
+        .eq('is_public', true)
+        .is('assignee_id', null)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Erro ao buscar tarefas departamentais públicas:', error);
+        throw error;
+      }
+      
+      const tasks: Task[] = (data || []).map(task => ({
+        ...task,
+        status: task.status as 'todo' | 'in_progress' | 'done',
+        priority: task.priority as 'high' | 'medium' | 'low',
+        task_type: task.task_type as 'personal' | 'department' | 'company'
+      }));
+      
+      console.log('Todas as tarefas departamentais públicas encontradas:', tasks);
+      return tasks;
+    },
+    enabled: !!companyId,
+  });
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
