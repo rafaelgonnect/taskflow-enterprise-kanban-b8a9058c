@@ -4,7 +4,7 @@ import { useCreateDocumentation } from '@/hooks/useRoadmapDocumentation';
 import { useAuth } from '@/hooks/useAuth';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useToast } from '@/hooks/use-toast';
-import { initialRoadmapItems, initialDocumentation } from '@/data/initialRoadmapData';
+import { initialRoadmapItems, initialDocumentation } from '@/data/roadmap';
 
 export function useRoadmapSeeder() {
   const { user } = useAuth();
