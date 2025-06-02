@@ -12,6 +12,9 @@ import { RoadmapItemDialog } from '@/components/roadmap/RoadmapItemDialog';
 import { RoadmapFilters } from '@/types/roadmap';
 import { Plus, Search, Filter, Download, GitBranch } from 'lucide-react';
 import { DocumentationTab } from '@/components/roadmap/DocumentationTab';
+import { AIAnalysisPanel } from '@/components/roadmap/AIAnalysisPanel';
+import { AIChatAssistant } from '@/components/roadmap/AIChatAssistant';
+import { AIAutoGeneration } from '@/components/roadmap/AIAutoGeneration';
 
 const Roadmap = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -176,11 +179,13 @@ const Roadmap = () => {
 
       {/* Tabs de Visualização */}
       <Tabs defaultValue="kanban" className="space-y-6">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4">
+        <TabsList className="grid w-full max-w-3xl grid-cols-6">
           <TabsTrigger value="kanban">Kanban</TabsTrigger>
           <TabsTrigger value="changelog">Changelog</TabsTrigger>
           <TabsTrigger value="stats">Métricas</TabsTrigger>
           <TabsTrigger value="docs">Documentação</TabsTrigger>
+          <TabsTrigger value="ai-analysis">Análise IA</TabsTrigger>
+          <TabsTrigger value="ai-chat">Chat IA</TabsTrigger>
         </TabsList>
 
         <TabsContent value="kanban" className="space-y-6">
@@ -261,6 +266,17 @@ const Roadmap = () => {
 
         <TabsContent value="docs" className="space-y-6">
           <DocumentationTab />
+        </TabsContent>
+
+        <TabsContent value="ai-analysis" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <AIAnalysisPanel />
+            <AIAutoGeneration />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="ai-chat" className="space-y-6">
+          <AIChatAssistant />
         </TabsContent>
       </Tabs>
 
