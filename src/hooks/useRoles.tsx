@@ -8,8 +8,12 @@ export interface Role {
   name: string;
   description: string | null;
   is_default: boolean;
+  is_system_role?: boolean;
   company_id: string;
   created_at: string;
+  color?: string;
+  icon?: string;
+  max_users?: number;
   role_permissions: {
     permission: string;
   }[];
@@ -35,8 +39,12 @@ export function useRoles(companyId?: string) {
           name,
           description,
           is_default,
+          is_system_role,
           company_id,
           created_at,
+          color,
+          icon,
+          max_users,
           role_permissions(
             permission
           )
