@@ -1,100 +1,84 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
 import { useCompanyContext } from "@/contexts/CompanyContext";
-import { Sidebar } from "@/components/Sidebar";
-import { TaskBoard } from "@/components/TaskBoard";
-import { Header } from "@/components/Header";
 import { DashboardStats } from "@/components/DashboardStats";
-import { UserManagement } from "@/components/UserManagement";
-import { CompanyCreationModal } from "@/components/CompanyCreationModal";
+import { TaskBoard } from "@/components/TaskBoard";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useDepartments } from "@/hooks/useDepartments";
 
 const Index = () => {
+  const { selectedCompany } = useCompanyContext();
   const [selectedView, setSelectedView] = useState("dashboard");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
-  const [showCompanyModal, setShowCompanyModal] = useState(false);
-  const [hasCheckedCompanies, setHasCheckedCompanies] = useState(false);
-  const { user, loading } = useAuth();
-  const { selectedCompany, companies, isLoading: companiesLoading } = useCompanyContext();
-  const navigate = useNavigate();
+  
+  const { data: departments = [] } = useDepartments(selectedCompany?.id);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
-
-  // Verificar se usuário não tem empresa e mostrar modal (com delay para evitar mostrar após aceitar convite)
-  useEffect(() => {
-    if (!companiesLoading && user && !hasCheckedCompanies) {
-      setHasCheckedCompanies(true);
-      
-      // Aguardar um momento para garantir que as empresas foram carregadas após aceitar convite
-      setTimeout(() => {
-        if (companies && companies.length === 0) {
-          setShowCompanyModal(true);
-        }
-      }, 1000);
-    }
-  }, [companiesLoading, companies, user, hasCheckedCompanies]);
-
-  // Reset do check quando o usuário muda
-  useEffect(() => {
-    if (user) {
-      setHasCheckedCompanies(false);
-    }
-  }, [user?.id]);
-
-  if (loading || companiesLoading) {
+  if (!selectedCompany) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-slate-600">Carregando...</p>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Bem-vindo ao TaskFlow</h2>
+          <p className="text-slate-600">Selecione uma empresa para começar</p>
         </div>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="flex">
-          <Sidebar 
-            selectedView={selectedView}
-            setSelectedView={setSelectedView}
-            selectedDepartment={selectedDepartment}
-            setSelectedDepartment={setSelectedDepartment}
-          />
-          <div className="flex-1 flex flex-col">
-            <Header />
-            <main className="flex-1 p-6">
-              {selectedView === "dashboard" && <DashboardStats />}
-              {selectedView === "kanban" && selectedCompany && (
-                <TaskBoard 
-                  companyId={selectedCompany.id}
-                  departmentId={selectedDepartment}
-                />
-              )}
-              {selectedView === "my-tasks" && selectedCompany && (
-                <TaskBoard 
-                  companyId={selectedCompany.id}
-                  departmentId="user"
-                  userId="current"
-                />
-              )}
-              {selectedView === "users" && <UserManagement />}
-            </main>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {selectedView === "dashboard" ? "Dashboard" : "Kanban Board"}
+          </h1>
+          <p className="text-slate-600">
+            {selectedView === "dashboard" 
+              ? "Visão geral das suas tarefas e equipe" 
+              : "Gerencie suas tarefas de forma visual"}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <Select value={selectedView} onValueChange={setSelectedView}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="dashboard">Dashboard</SelectItem>
+              <SelectItem value="kanban">Kanban Board</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {selectedView === "kanban" && (
+            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Departamentos</SelectItem>
+                <SelectItem value="user">Minhas Tarefas</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
-      <CompanyCreationModal 
-        isOpen={showCompanyModal}
-        onClose={() => setShowCompanyModal(false)}
-      />
-    </>
+      {selectedView === "dashboard" ? (
+        <DashboardStats />
+      ) : (
+        <TaskBoard 
+          companyId={selectedCompany.id}
+          departmentId={selectedDepartment}
+          userId={selectedDepartment === "user" ? "current" : undefined}
+        />
+      )}
+    </div>
   );
 };
 
