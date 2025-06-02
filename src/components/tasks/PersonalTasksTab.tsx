@@ -97,12 +97,12 @@ export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
         viewMode === 'kanban' ? (
           <TaskBoard 
             companyId={companyId}
-            userId="current"
+            taskType="personal"
           />
         ) : (
           <TaskListView 
             companyId={companyId}
-            userId="current"
+            taskType="personal"
           />
         )
       )}

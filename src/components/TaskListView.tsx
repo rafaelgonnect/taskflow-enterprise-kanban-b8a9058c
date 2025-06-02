@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { usePersonalTasks, useUpdateTaskStatus } from '@/hooks/useTasks';
+import { useDepartmentTasks, useCompanyTasks } from '@/hooks/usePublicTasks';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Edit, Trash2, Eye, Calendar, Clock } from 'lucide-react';
 
@@ -10,11 +11,37 @@ interface TaskListViewProps {
   companyId: string;
   userId?: string;
   departmentId?: string;
+  taskType?: 'personal' | 'department' | 'company';
 }
 
-export const TaskListView = ({ companyId, userId, departmentId }: TaskListViewProps) => {
-  const { data: tasks = [], isLoading } = usePersonalTasks(companyId);
+export const TaskListView = ({ companyId, userId, departmentId, taskType = 'personal' }: TaskListViewProps) => {
+  // Usar o hook apropriado baseado no tipo de tarefa
+  const { data: personalTasks = [], isLoading: personalLoading } = usePersonalTasks(
+    taskType === 'personal' ? companyId : undefined
+  );
+  const { data: departmentTasks = [], isLoading: departmentLoading } = useDepartmentTasks(
+    taskType === 'department' ? departmentId : undefined
+  );
+  const { data: companyTasks = [], isLoading: companyLoading } = useCompanyTasks(
+    taskType === 'company' ? companyId : undefined
+  );
+  
   const updateTaskStatus = useUpdateTaskStatus();
+
+  // Determinar quais tarefas usar
+  let tasks = [];
+  let isLoading = false;
+  
+  if (taskType === 'personal') {
+    tasks = personalTasks;
+    isLoading = personalLoading;
+  } else if (taskType === 'department') {
+    tasks = departmentTasks;
+    isLoading = departmentLoading;
+  } else if (taskType === 'company') {
+    tasks = companyTasks;
+    isLoading = companyLoading;
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {

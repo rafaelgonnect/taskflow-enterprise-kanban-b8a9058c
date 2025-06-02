@@ -2,6 +2,7 @@
 import { CheckCircle, Clock, AlertCircle, Users } from "lucide-react";
 import { usePersonalTasks } from '@/hooks/useTasks';
 import { useCompanyContext } from '@/contexts/CompanyContext';
+import { PublicTasksDashboard } from './PublicTasksDashboard';
 
 export const DashboardStats = () => {
   const { selectedCompany } = useCompanyContext();
@@ -101,6 +102,11 @@ export const DashboardStats = () => {
           </div>
         ))}
       </div>
+
+      {/* Seção de Tarefas Públicas Disponíveis */}
+      {selectedCompany && (
+        <PublicTasksDashboard companyId={selectedCompany.id} />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">

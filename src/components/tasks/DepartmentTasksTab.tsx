@@ -31,20 +31,32 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
 
   // Filtrar apenas departamentos onde o usuário é membro ou gerente
   const userDepartments = departments.filter(dept => 
-    dept.manager_id === user?.id || // É gerente
+    dept.manager_id === user?.id // É gerente
     // Em uma implementação real, verificaríamos se é membro via department_members
-    true // Por ora, mostrar todos
   );
 
-  // Verificar se pode criar tarefas departamentais (gerente ou admin)
+  // Verificar se pode criar tarefas departamentais (gerente do departamento selecionado)
   const canCreateDepartmentTasks = selectedDepartmentId && departments.some(dept => 
     dept.id === selectedDepartmentId && dept.manager_id === user?.id
   );
 
   const handleCreateTask = async (formData: any) => {
-    if (!selectedDepartmentId) return;
+    if (!selectedDepartmentId) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione um departamento primeiro',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
+      console.log('Criando tarefa departamental:', {
+        ...formData,
+        departmentId: selectedDepartmentId,
+        taskType: 'department'
+      });
+
       await createTask.mutateAsync({
         title: formData.title,
         description: formData.description,
@@ -64,6 +76,7 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
 
       setShowCreateDialog(false);
     } catch (error: any) {
+      console.error('Erro ao criar tarefa departamental:', error);
       toast({
         title: 'Erro ao criar tarefa',
         description: error.message,
@@ -81,7 +94,7 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
         </div>
 
         <div className="flex items-center gap-4">
-          {selectedDepartmentId && (
+          {selectedDepartmentId && tasks.length > 0 && (
             <TaskViewToggle view={viewMode} onViewChange={setViewMode} />
           )}
           
@@ -150,11 +163,13 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
             <TaskBoard 
               companyId={companyId}
               departmentId={selectedDepartmentId}
+              taskType="department"
             />
           ) : (
             <TaskListView 
               companyId={companyId}
               departmentId={selectedDepartmentId}
+              taskType="department"
             />
           )
         )}

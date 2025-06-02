@@ -31,6 +31,11 @@ export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
 
   const handleCreateTask = async (formData: any) => {
     try {
+      console.log('Criando tarefa empresarial:', {
+        ...formData,
+        taskType: 'company'
+      });
+
       await createTask.mutateAsync({
         title: formData.title,
         description: formData.description,
@@ -49,6 +54,7 @@ export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
 
       setShowCreateDialog(false);
     } catch (error: any) {
+      console.error('Erro ao criar tarefa empresarial:', error);
       toast({
         title: 'Erro ao criar tarefa',
         description: error.message,
@@ -111,10 +117,12 @@ export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
         viewMode === 'kanban' ? (
           <TaskBoard 
             companyId={companyId}
+            taskType="company"
           />
         ) : (
           <TaskListView 
             companyId={companyId}
+            taskType="company"
           />
         )
       )}

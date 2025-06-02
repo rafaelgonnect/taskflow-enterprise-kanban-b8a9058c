@@ -1,19 +1,48 @@
 
 import { useState } from "react";
 import { TaskColumn } from "@/components/TaskColumn";
-import { Plus } from "lucide-react";
 import { usePersonalTasks, useUpdateTaskStatus, Task } from '@/hooks/useTasks';
+import { useDepartmentTasks, useCompanyTasks } from '@/hooks/usePublicTasks';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 
 interface TaskBoardProps {
   companyId: string;
   departmentId?: string;
   userId?: string;
+  taskType?: 'personal' | 'department' | 'company';
 }
 
-export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) => {
-  const { data: tasks = [], isLoading } = usePersonalTasks(companyId);
+export const TaskBoard = ({ companyId, departmentId, userId, taskType = 'personal' }: TaskBoardProps) => {
+  const { selectedCompany } = useCompanyContext();
+  
+  // Usar o hook apropriado baseado no tipo de tarefa
+  const { data: personalTasks = [], isLoading: personalLoading } = usePersonalTasks(
+    taskType === 'personal' ? companyId : undefined
+  );
+  const { data: departmentTasks = [], isLoading: departmentLoading } = useDepartmentTasks(
+    taskType === 'department' ? departmentId : undefined
+  );
+  const { data: companyTasks = [], isLoading: companyLoading } = useCompanyTasks(
+    taskType === 'company' ? companyId : undefined
+  );
+  
   const updateTaskStatus = useUpdateTaskStatus();
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
+
+  // Determinar quais tarefas usar
+  let tasks: Task[] = [];
+  let isLoading = false;
+  
+  if (taskType === 'personal') {
+    tasks = personalTasks;
+    isLoading = personalLoading;
+  } else if (taskType === 'department') {
+    tasks = departmentTasks;
+    isLoading = departmentLoading;
+  } else if (taskType === 'company') {
+    tasks = companyTasks;
+    isLoading = companyLoading;
+  }
 
   const columns = [
     { id: "todo", title: "A Fazer", color: "border-slate-300" },
@@ -22,19 +51,7 @@ export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) =
   ];
 
   const getTasksByStatus = (status: 'todo' | 'in_progress' | 'done') => {
-    let filteredTasks = tasks;
-    
-    if (departmentId && departmentId !== "all" && departmentId !== "user") {
-      // Em uma implementação real, filtraria por departamento
-      filteredTasks = tasks.filter(task => task.department_id === departmentId);
-    }
-    
-    if (userId === "current") {
-      // Em uma implementação real, filtraria pelo usuário atual
-      filteredTasks = tasks;
-    }
-
-    return filteredTasks.filter(task => task.status === status);
+    return tasks.filter(task => task.status === status);
   };
 
   const handleStatusChange = (taskId: string, newStatus: 'todo' | 'in_progress' | 'done') => {
@@ -70,17 +87,29 @@ export const TaskBoard = ({ companyId, departmentId, userId }: TaskBoardProps) =
     );
   }
 
+  const getTitle = () => {
+    if (taskType === 'personal') return "Minhas Tarefas Pessoais";
+    if (taskType === 'department') return "Tarefas Departamentais";
+    if (taskType === 'company') return "Tarefas Empresariais";
+    return "Kanban Board";
+  };
+
+  const getDescription = () => {
+    if (taskType === 'personal') return "Suas tarefas pessoais";
+    if (taskType === 'department') return "Tarefas do departamento";
+    if (taskType === 'company') return "Tarefas da empresa";
+    return "Visualize e gerencie suas tarefas";
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-3xl font-bold text-slate-900 mb-2">
-            {departmentId === "user" ? "Minhas Tarefas" : "Kanban Board"}
+            {getTitle()}
           </h2>
           <p className="text-slate-600">
-            {departmentId === "all" ? "Todas as tarefas da empresa" : 
-             departmentId === "user" ? "Suas tarefas pessoais" :
-             `Tarefas do departamento de ${departmentId}`}
+            {getDescription()}
           </p>
         </div>
       </div>
