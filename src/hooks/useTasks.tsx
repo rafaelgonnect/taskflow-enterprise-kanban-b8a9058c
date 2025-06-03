@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -123,20 +124,7 @@ export function useCreateTask() {
         throw error;
       }
 
-      // Criar entrada no histórico para tarefa criada
-      const { error: historyError } = await supabase
-        .from('task_history')
-        .insert({
-          task_id: data.id,
-          action: 'created',
-          new_value: `Tarefa ${taskData.taskType === 'personal' ? 'pessoal' : taskData.taskType === 'department' ? 'departamental' : 'empresarial'} criada`,
-          changed_by: user.id,
-        });
-
-      if (historyError) {
-        console.error('Erro ao criar histórico da tarefa:', historyError);
-      }
-      
+      // Remover criação manual de histórico - deixar apenas o trigger do banco
       console.log('Tarefa criada com sucesso:', data);
       return data;
     },
@@ -160,14 +148,6 @@ export function useUpdateTask() {
       if (!user) throw new Error('Usuário não autenticado');
       
       console.log('Atualizando tarefa:', taskData);
-      
-      // Buscar dados atuais da tarefa para comparação
-      const { data: currentTask } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('id', taskData.id)
-        .eq('company_id', taskData.companyId)
-        .single();
       
       const { data, error } = await supabase
         .from('tasks')
@@ -193,44 +173,7 @@ export function useUpdateTask() {
         throw error;
       }
 
-      // Criar entradas no histórico para as mudanças
-      if (currentTask) {
-        const historyEntries = [];
-
-        if (currentTask.title !== taskData.title) {
-          historyEntries.push({
-            task_id: taskData.id,
-            action: 'title_changed',
-            old_value: currentTask.title,
-            new_value: taskData.title,
-            field_changed: 'title',
-            changed_by: user.id,
-          });
-        }
-
-        if (currentTask.priority !== taskData.priority) {
-          const priorityLabels = { 'high': 'Alta', 'medium': 'Média', 'low': 'Baixa' };
-          historyEntries.push({
-            task_id: taskData.id,
-            action: 'priority_changed',
-            old_value: priorityLabels[currentTask.priority as keyof typeof priorityLabels],
-            new_value: priorityLabels[taskData.priority],
-            field_changed: 'priority',
-            changed_by: user.id,
-          });
-        }
-
-        if (historyEntries.length > 0) {
-          const { error: historyError } = await supabase
-            .from('task_history')
-            .insert(historyEntries);
-
-          if (historyError) {
-            console.error('Erro ao criar histórico da atualização:', historyError);
-          }
-        }
-      }
-      
+      // Remover criação manual de histórico - deixar apenas o trigger do banco
       console.log('Tarefa atualizada com sucesso:', data);
       return data;
     },
@@ -286,14 +229,6 @@ export function useUpdateTaskStatus() {
       
       console.log('Atualizando status da tarefa:', { taskId, newStatus });
       
-      // Buscar dados atuais da tarefa para o histórico
-      const { data: currentTask } = await supabase
-        .from('tasks')
-        .select('status')
-        .eq('id', taskId)
-        .eq('company_id', companyId)
-        .single();
-      
       const { data, error } = await supabase
         .from('tasks')
         .update({
@@ -310,30 +245,7 @@ export function useUpdateTaskStatus() {
         throw error;
       }
 
-      // Criar entrada no histórico para mudança de status
-      if (currentTask && currentTask.status !== newStatus) {
-        const statusLabels = {
-          'todo': 'A Fazer',
-          'in_progress': 'Em Progresso', 
-          'done': 'Concluído'
-        };
-
-        const { error: historyError } = await supabase
-          .from('task_history')
-          .insert({
-            task_id: taskId,
-            action: 'status_changed',
-            old_value: statusLabels[currentTask.status as keyof typeof statusLabels],
-            new_value: statusLabels[newStatus],
-            field_changed: 'status',
-            changed_by: user.id,
-          });
-
-        if (historyError) {
-          console.error('Erro ao criar histórico do status:', historyError);
-        }
-      }
-      
+      // Remover criação manual de histórico - deixar apenas o trigger do banco
       console.log('Status atualizado com sucesso:', data);
       return data;
     },

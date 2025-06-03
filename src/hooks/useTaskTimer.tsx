@@ -11,63 +11,31 @@ export function useStartTimer() {
     mutationFn: async ({ taskId, companyId }: { taskId: string; companyId: string }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
-      console.log('Iniciando timer:', { taskId, userId: user.id });
-      const now = new Date().toISOString();
+      console.log('Iniciando timer para tarefa:', taskId);
       
-      // Atualizar a tarefa para indicar que o timer está rodando
-      const { error: taskError } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .update({
           is_timer_running: true,
-          current_timer_start: now,
+          current_timer_start: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         })
         .eq('id', taskId)
-        .eq('company_id', companyId);
-      
-      if (taskError) {
-        console.error('Erro ao atualizar tarefa:', taskError);
-        throw taskError;
-      }
-      
-      // Criar novo log de tempo
-      const { data, error } = await supabase
-        .from('task_time_logs')
-        .insert({
-          task_id: taskId,
-          user_id: user.id,
-          started_at: now,
-        })
+        .eq('company_id', companyId)
         .select()
         .single();
       
       if (error) {
-        console.error('Erro ao criar log de tempo:', error);
+        console.error('Erro ao iniciar timer:', error);
         throw error;
-      }
-
-      // Criar entrada no histórico para timer iniciado
-      const { error: historyError } = await supabase
-        .from('task_history')
-        .insert({
-          task_id: taskId,
-          action: 'timer_started',
-          new_value: 'Timer iniciado',
-          changed_by: user.id,
-        });
-
-      if (historyError) {
-        console.error('Erro ao criar histórico do timer:', historyError);
       }
       
       console.log('Timer iniciado com sucesso:', data);
       return data;
     },
     onSuccess: (_, variables) => {
-      // Invalidar todas as queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['personal-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
       queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
-      queryClient.invalidateQueries({ queryKey: ['task-comments', variables.taskId] });
-      queryClient.invalidateQueries({ queryKey: ['task-attachments', variables.taskId] });
     },
   });
 }
@@ -77,91 +45,79 @@ export function useStopTimer() {
   const { user } = useAuth();
   
   return useMutation({
-    mutationFn: async ({ taskId, companyId, description }: { taskId: string; companyId: string; description?: string }) => {
+    mutationFn: async ({ 
+      taskId, 
+      companyId, 
+      description 
+    }: { 
+      taskId: string; 
+      companyId: string; 
+      description?: string;
+    }) => {
       if (!user) throw new Error('Usuário não autenticado');
       
-      console.log('Parando timer:', { taskId, userId: user.id });
-      const now = new Date().toISOString();
+      console.log('Parando timer para tarefa:', taskId);
       
-      // Buscar o log de tempo mais recente não finalizado
-      const { data: timeLog, error: timeLogError } = await supabase
-        .from('task_time_logs')
-        .select('*')
-        .eq('task_id', taskId)
-        .eq('user_id', user.id)
-        .is('ended_at', null)
-        .order('started_at', { ascending: false })
-        .limit(1)
+      // Buscar dados atuais da tarefa
+      const { data: currentTask } = await supabase
+        .from('tasks')
+        .select('current_timer_start, total_time_minutes')
+        .eq('id', taskId)
+        .eq('company_id', companyId)
         .single();
       
-      if (timeLogError) {
-        console.error('Erro ao buscar log de tempo:', timeLogError);
-        throw timeLogError;
+      if (!currentTask?.current_timer_start) {
+        throw new Error('Timer não está rodando');
       }
       
-      // Calcular duração em minutos
-      const startTime = new Date(timeLog.started_at);
-      const endTime = new Date(now);
-      const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
+      // Calcular tempo decorrido
+      const startTime = new Date(currentTask.current_timer_start);
+      const endTime = new Date();
+      const durationMinutes = Math.floor((endTime.getTime() - startTime.getTime()) / (1000 * 60));
       
-      // Atualizar o log de tempo
-      const { error: updateLogError } = await supabase
-        .from('task_time_logs')
-        .update({
-          ended_at: now,
-          duration_minutes: durationMinutes,
-          description: description || null,
-        })
-        .eq('id', timeLog.id);
+      // Atualizar tarefa
+      const newTotalTime = (currentTask.total_time_minutes || 0) + durationMinutes;
       
-      if (updateLogError) {
-        console.error('Erro ao atualizar log:', updateLogError);
-        throw updateLogError;
-      }
-      
-      // Calcular tempo total
-      const { data: totalTimeResult } = await supabase
-        .rpc('calculate_total_time', { task_id_param: taskId });
-      
-      // Atualizar a tarefa
-      const { error: taskError } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .update({
           is_timer_running: false,
           current_timer_start: null,
-          total_time_minutes: totalTimeResult || 0,
+          total_time_minutes: newTotalTime,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', taskId)
-        .eq('company_id', companyId);
+        .eq('company_id', companyId)
+        .select()
+        .single();
       
-      if (taskError) {
-        console.error('Erro ao atualizar tarefa:', taskError);
-        throw taskError;
+      if (error) {
+        console.error('Erro ao parar timer:', error);
+        throw error;
       }
-
-      // Criar entrada no histórico para timer pausado
-      const { error: historyError } = await supabase
-        .from('task_history')
+      
+      // Criar log de tempo
+      const { error: logError } = await supabase
+        .from('task_time_logs')
         .insert({
           task_id: taskId,
-          action: 'timer_stopped',
-          new_value: `Timer pausado (${durationMinutes} min)${description ? ` - ${description}` : ''}`,
-          changed_by: user.id,
+          user_id: user.id,
+          started_at: startTime.toISOString(),
+          ended_at: endTime.toISOString(),
+          duration_minutes: durationMinutes,
+          description: description || 'Sessão de trabalho',
         });
-
-      if (historyError) {
-        console.error('Erro ao criar histórico do timer:', historyError);
+      
+      if (logError) {
+        console.error('Erro ao criar log de tempo:', logError);
       }
       
-      console.log('Timer pausado com sucesso');
-      return { durationMinutes, totalTime: totalTimeResult || 0 };
+      console.log('Timer parado com sucesso:', data);
+      return data;
     },
     onSuccess: (_, variables) => {
-      // Invalidar todas as queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ['personal-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
       queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
-      queryClient.invalidateQueries({ queryKey: ['task-comments', variables.taskId] });
-      queryClient.invalidateQueries({ queryKey: ['task-attachments', variables.taskId] });
     },
   });
 }

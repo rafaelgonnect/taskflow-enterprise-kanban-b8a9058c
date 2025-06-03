@@ -3,6 +3,7 @@ import { CheckCircle, Clock, AlertCircle, Users } from "lucide-react";
 import { usePersonalTasks } from '@/hooks/useTasks';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { PublicTasksDashboard } from './PublicTasksDashboard';
+import { PublicDepartmentTasksWidget } from './PublicDepartmentTasksWidget';
 
 export const DashboardStats = () => {
   const { selectedCompany } = useCompanyContext();
@@ -84,6 +85,15 @@ export const DashboardStats = () => {
         <p className="text-slate-600">Visão geral das suas tarefas e produtividade</p>
       </div>
 
+      {/* Widgets de Tarefas Públicas no Topo */}
+      {selectedCompany && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <PublicDepartmentTasksWidget companyId={selectedCompany.id} />
+          <PublicTasksDashboard companyId={selectedCompany.id} />
+        </div>
+      )}
+
+      {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
           <div
@@ -103,11 +113,7 @@ export const DashboardStats = () => {
         ))}
       </div>
 
-      {/* Seção de Tarefas Públicas Disponíveis */}
-      {selectedCompany && (
-        <PublicTasksDashboard companyId={selectedCompany.id} />
-      )}
-
+      {/* Seção inferior com atividades e progresso */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Atividade Recente</h3>
