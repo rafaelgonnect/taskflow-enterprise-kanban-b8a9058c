@@ -1,10 +1,9 @@
-
 import { CheckCircle, Clock, AlertCircle, Users } from "lucide-react";
 import { usePersonalTasks } from '@/hooks/useTasks';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { PublicTasksDashboard } from './PublicTasksDashboard';
 import { PublicDepartmentTasksWidget } from './PublicDepartmentTasksWidget';
-import { PendingTransfersWidget } from './tasks/PendingTransfersWidget';
+import { SimplePendingTransfers } from './tasks/SimplePendingTransfers';
 
 export const DashboardStats = () => {
   const { selectedCompany } = useCompanyContext();
@@ -95,7 +94,7 @@ export const DashboardStats = () => {
       )}
 
       {/* Widget de Transferências Pendentes */}
-      <PendingTransfersWidget />
+      <SimplePendingTransfers />
 
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
