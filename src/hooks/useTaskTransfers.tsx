@@ -43,9 +43,7 @@ export function usePendingTransfers() {
         .from('task_transfers')
         .select(`
           *,
-          from_user:profiles!task_transfers_from_user_id_fkey(full_name),
-          to_user:profiles!task_transfers_to_user_id_fkey(full_name),
-          task:tasks(title)
+          tasks!inner(title)
         `)
         .eq('to_user_id', user.id)
         .eq('status', 'pending')
@@ -56,16 +54,33 @@ export function usePendingTransfers() {
         throw error;
       }
       
-      const transfers: TaskTransfer[] = (data || []).map(transfer => ({
-        ...transfer,
-        transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
-        from_user_name: transfer.from_user?.full_name,
-        to_user_name: transfer.to_user?.full_name,
-        task_title: transfer.task?.title
+      // Buscar nomes dos usuários separadamente
+      const transfersWithNames = await Promise.all((data || []).map(async (transfer) => {
+        const [fromUser, toUser] = await Promise.all([
+          transfer.from_user_id ? supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', transfer.from_user_id)
+            .single() : Promise.resolve({ data: null }),
+          transfer.to_user_id ? supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', transfer.to_user_id)
+            .single() : Promise.resolve({ data: null })
+        ]);
+
+        return {
+          ...transfer,
+          transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
+          status: transfer.status as 'pending' | 'accepted' | 'rejected',
+          from_user_name: fromUser.data?.full_name,
+          to_user_name: toUser.data?.full_name,
+          task_title: transfer.tasks?.title
+        };
       }));
       
-      console.log('Transferências pendentes encontradas:', transfers);
-      return transfers;
+      console.log('Transferências pendentes encontradas:', transfersWithNames);
+      return transfersWithNames;
     },
     enabled: !!user,
     refetchInterval: 30000,
@@ -87,11 +102,9 @@ export function useTransferHistory(companyId?: string) {
         .from('task_transfers')
         .select(`
           *,
-          from_user:profiles!task_transfers_from_user_id_fkey(full_name),
-          to_user:profiles!task_transfers_to_user_id_fkey(full_name),
-          task:tasks!inner(title, company_id)
+          tasks!inner(title, company_id)
         `)
-        .eq('task.company_id', companyId)
+        .eq('tasks.company_id', companyId)
         .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id},requested_by.eq.${user.id}`)
         .order('requested_at', { ascending: false });
       
@@ -100,16 +113,33 @@ export function useTransferHistory(companyId?: string) {
         throw error;
       }
       
-      const transfers: TaskTransfer[] = (data || []).map(transfer => ({
-        ...transfer,
-        transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
-        from_user_name: transfer.from_user?.full_name,
-        to_user_name: transfer.to_user?.full_name,
-        task_title: transfer.task?.title
+      // Buscar nomes dos usuários separadamente
+      const transfersWithNames = await Promise.all((data || []).map(async (transfer) => {
+        const [fromUser, toUser] = await Promise.all([
+          transfer.from_user_id ? supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', transfer.from_user_id)
+            .single() : Promise.resolve({ data: null }),
+          transfer.to_user_id ? supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', transfer.to_user_id)
+            .single() : Promise.resolve({ data: null })
+        ]);
+
+        return {
+          ...transfer,
+          transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
+          status: transfer.status as 'pending' | 'accepted' | 'rejected',
+          from_user_name: fromUser.data?.full_name,
+          to_user_name: toUser.data?.full_name,
+          task_title: transfer.tasks?.title
+        };
       }));
       
-      console.log('Histórico de transferências encontrado:', transfers);
-      return transfers;
+      console.log('Histórico de transferências encontrado:', transfersWithNames);
+      return transfersWithNames;
     },
     enabled: !!user && !!companyId,
   });
