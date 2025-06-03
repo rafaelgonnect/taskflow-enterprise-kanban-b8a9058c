@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,13 +13,22 @@ import { ptBR } from 'date-fns/locale';
 
 export const PendingTransfersWidget = () => {
   const { toast } = useToast();
-  const { data: pendingTransfers = [], isLoading } = usePendingTransfers();
+  const { data: pendingTransfers = [], isLoading, error } = usePendingTransfers();
   const respondToTransfer = useRespondToTransfer();
   
   const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [responseReason, setResponseReason] = useState('');
   const [actionType, setActionType] = useState<'accept' | 'reject'>('accept');
+
+  // Cleanup no desmonte do componente
+  useEffect(() => {
+    return () => {
+      setSelectedTransfer(null);
+      setShowResponseDialog(false);
+      setResponseReason('');
+    };
+  }, []);
 
   const handleResponse = async () => {
     if (!selectedTransfer) return;
@@ -41,9 +50,10 @@ export const PendingTransfersWidget = () => {
       setSelectedTransfer(null);
       setResponseReason('');
     } catch (error: any) {
+      console.error('Erro ao responder transferência:', error);
       toast({
         title: 'Erro ao responder transferência',
-        description: error.message,
+        description: error.message || 'Erro desconhecido',
         variant: 'destructive',
       });
     }
@@ -54,6 +64,12 @@ export const PendingTransfersWidget = () => {
     setActionType(action);
     setShowResponseDialog(true);
   };
+
+  // Tratamento de erro
+  if (error) {
+    console.error('Erro no widget de transferências:', error);
+    return null; // Não renderizar em caso de erro
+  }
 
   if (isLoading) {
     return (
@@ -74,7 +90,7 @@ export const PendingTransfersWidget = () => {
     );
   }
 
-  if (pendingTransfers.length === 0) {
+  if (!pendingTransfers || pendingTransfers.length === 0) {
     return null;
   }
 
@@ -164,17 +180,17 @@ export const PendingTransfersWidget = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={showResponseDialog} onOpenChange={setShowResponseDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {actionType === 'accept' ? 'Aceitar' : 'Rejeitar'} {' '}
-              {selectedTransfer?.transfer_type === 'delegation' ? 'Delegação' : 'Transferência'}
-            </DialogTitle>
-          </DialogHeader>
+      {showResponseDialog && selectedTransfer && (
+        <Dialog open={showResponseDialog} onOpenChange={setShowResponseDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {actionType === 'accept' ? 'Aceitar' : 'Rejeitar'} {' '}
+                {selectedTransfer.transfer_type === 'delegation' ? 'Delegação' : 'Transferência'}
+              </DialogTitle>
+            </DialogHeader>
 
-          <div className="space-y-4">
-            {selectedTransfer && (
+            <div className="space-y-4">
               <div>
                 <h4 className="font-medium mb-2">Tarefa</h4>
                 <div className="p-3 bg-slate-50 rounded-lg">
@@ -184,49 +200,49 @@ export const PendingTransfersWidget = () => {
                   </p>
                 </div>
               </div>
-            )}
 
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Motivo {actionType === 'accept' ? '(opcional)' : '(obrigatório)'}
-              </label>
-              <Textarea
-                value={responseReason}
-                onChange={(e) => setResponseReason(e.target.value)}
-                placeholder={`Descreva o motivo ${actionType === 'accept' ? 'para aceitar' : 'para rejeitar'}...`}
-                rows={3}
-              />
-            </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Motivo {actionType === 'accept' ? '(opcional)' : '(obrigatório)'}
+                </label>
+                <Textarea
+                  value={responseReason}
+                  onChange={(e) => setResponseReason(e.target.value)}
+                  placeholder={`Descreva o motivo ${actionType === 'accept' ? 'para aceitar' : 'para rejeitar'}...`}
+                  rows={3}
+                />
+              </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button
-                onClick={handleResponse}
-                disabled={
-                  respondToTransfer.isPending || 
-                  (actionType === 'reject' && !responseReason.trim())
-                }
-                className={
-                  actionType === 'accept' 
-                    ? 'bg-green-600 hover:bg-green-700 flex-1' 
-                    : 'bg-red-600 hover:bg-red-700 flex-1'
-                }
-              >
-                {respondToTransfer.isPending 
-                  ? 'Processando...' 
-                  : (actionType === 'accept' ? 'Aceitar' : 'Rejeitar')
-                }
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowResponseDialog(false)} 
-                className="flex-1"
-              >
-                Cancelar
-              </Button>
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={handleResponse}
+                  disabled={
+                    respondToTransfer.isPending || 
+                    (actionType === 'reject' && !responseReason.trim())
+                  }
+                  className={
+                    actionType === 'accept' 
+                      ? 'bg-green-600 hover:bg-green-700 flex-1' 
+                      : 'bg-red-600 hover:bg-red-700 flex-1'
+                  }
+                >
+                  {respondToTransfer.isPending 
+                    ? 'Processando...' 
+                    : (actionType === 'accept' ? 'Aceitar' : 'Rejeitar')
+                  }
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowResponseDialog(false)} 
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };

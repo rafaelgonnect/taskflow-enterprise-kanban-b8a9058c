@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -39,51 +38,75 @@ export function usePendingTransfers() {
       
       console.log('Buscando transferências pendentes para:', user.id);
       
-      const { data, error } = await supabase
-        .from('task_transfers')
-        .select(`
-          *,
-          tasks!inner(title)
-        `)
-        .eq('to_user_id', user.id)
-        .eq('status', 'pending')
-        .order('requested_at', { ascending: false });
-      
-      if (error) {
-        console.error('Erro ao buscar transferências pendentes:', error);
-        throw error;
-      }
-      
-      // Buscar nomes dos usuários separadamente
-      const transfersWithNames = await Promise.all((data || []).map(async (transfer) => {
-        const [fromUser, toUser] = await Promise.all([
-          transfer.from_user_id ? supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', transfer.from_user_id)
-            .single() : Promise.resolve({ data: null }),
-          transfer.to_user_id ? supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', transfer.to_user_id)
-            .single() : Promise.resolve({ data: null })
-        ]);
+      try {
+        const { data, error } = await supabase
+          .from('task_transfers')
+          .select(`
+            *,
+            tasks!inner(title)
+          `)
+          .eq('to_user_id', user.id)
+          .eq('status', 'pending')
+          .order('requested_at', { ascending: false });
+        
+        if (error) {
+          console.error('Erro ao buscar transferências pendentes:', error);
+          return [];
+        }
+        
+        if (!data || data.length === 0) {
+          console.log('Nenhuma transferência pendente encontrada');
+          return [];
+        }
+        
+        // Buscar nomes dos usuários separadamente de forma segura
+        const transfersWithNames = await Promise.all(data.map(async (transfer) => {
+          try {
+            const [fromUserResponse, toUserResponse] = await Promise.all([
+              transfer.from_user_id ? supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', transfer.from_user_id)
+                .maybeSingle() : Promise.resolve({ data: null, error: null }),
+              transfer.to_user_id ? supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', transfer.to_user_id)
+                .maybeSingle() : Promise.resolve({ data: null, error: null })
+            ]);
 
-        return {
-          ...transfer,
-          transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
-          status: transfer.status as 'pending' | 'accepted' | 'rejected',
-          from_user_name: fromUser.data?.full_name,
-          to_user_name: toUser.data?.full_name,
-          task_title: transfer.tasks?.title
-        };
-      }));
-      
-      console.log('Transferências pendentes encontradas:', transfersWithNames);
-      return transfersWithNames;
+            return {
+              ...transfer,
+              transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
+              status: transfer.status as 'pending' | 'accepted' | 'rejected',
+              from_user_name: fromUserResponse.data?.full_name || 'Usuário desconhecido',
+              to_user_name: toUserResponse.data?.full_name || 'Usuário desconhecido',
+              task_title: transfer.tasks?.title || 'Tarefa sem título'
+            };
+          } catch (err) {
+            console.error('Erro ao buscar dados do usuário:', err);
+            return {
+              ...transfer,
+              transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
+              status: transfer.status as 'pending' | 'accepted' | 'rejected',
+              from_user_name: 'Usuário desconhecido',
+              to_user_name: 'Usuário desconhecido',
+              task_title: transfer.tasks?.title || 'Tarefa sem título'
+            };
+          }
+        }));
+        
+        console.log('Transferências pendentes encontradas:', transfersWithNames);
+        return transfersWithNames;
+      } catch (error) {
+        console.error('Erro geral ao buscar transferências:', error);
+        return [];
+      }
     },
     enabled: !!user,
     refetchInterval: 30000,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutos
   });
 }
 
@@ -98,50 +121,70 @@ export function useTransferHistory(companyId?: string) {
       
       console.log('Buscando histórico de transferências:', { companyId, userId: user.id });
       
-      const { data, error } = await supabase
-        .from('task_transfers')
-        .select(`
-          *,
-          tasks!inner(title, company_id)
-        `)
-        .eq('tasks.company_id', companyId)
-        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id},requested_by.eq.${user.id}`)
-        .order('requested_at', { ascending: false });
-      
-      if (error) {
-        console.error('Erro ao buscar histórico de transferências:', error);
-        throw error;
-      }
-      
-      // Buscar nomes dos usuários separadamente
-      const transfersWithNames = await Promise.all((data || []).map(async (transfer) => {
-        const [fromUser, toUser] = await Promise.all([
-          transfer.from_user_id ? supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', transfer.from_user_id)
-            .single() : Promise.resolve({ data: null }),
-          transfer.to_user_id ? supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', transfer.to_user_id)
-            .single() : Promise.resolve({ data: null })
-        ]);
+      try {
+        const { data, error } = await supabase
+          .from('task_transfers')
+          .select(`
+            *,
+            tasks!inner(title, company_id)
+          `)
+          .eq('tasks.company_id', companyId)
+          .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id},requested_by.eq.${user.id}`)
+          .order('requested_at', { ascending: false });
+        
+        if (error) {
+          console.error('Erro ao buscar histórico de transferências:', error);
+          return [];
+        }
+        
+        if (!data) return [];
+        
+        // Buscar nomes dos usuários separadamente de forma segura
+        const transfersWithNames = await Promise.all(data.map(async (transfer) => {
+          try {
+            const [fromUserResponse, toUserResponse] = await Promise.all([
+              transfer.from_user_id ? supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', transfer.from_user_id)
+                .maybeSingle() : Promise.resolve({ data: null, error: null }),
+              transfer.to_user_id ? supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', transfer.to_user_id)
+                .maybeSingle() : Promise.resolve({ data: null, error: null })
+            ]);
 
-        return {
-          ...transfer,
-          transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
-          status: transfer.status as 'pending' | 'accepted' | 'rejected',
-          from_user_name: fromUser.data?.full_name,
-          to_user_name: toUser.data?.full_name,
-          task_title: transfer.tasks?.title
-        };
-      }));
-      
-      console.log('Histórico de transferências encontrado:', transfersWithNames);
-      return transfersWithNames;
+            return {
+              ...transfer,
+              transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
+              status: transfer.status as 'pending' | 'accepted' | 'rejected',
+              from_user_name: fromUserResponse.data?.full_name || 'Usuário desconhecido',
+              to_user_name: toUserResponse.data?.full_name || 'Usuário desconhecido',
+              task_title: transfer.tasks?.title || 'Tarefa sem título'
+            };
+          } catch (err) {
+            console.error('Erro ao buscar dados do usuário no histórico:', err);
+            return {
+              ...transfer,
+              transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
+              status: transfer.status as 'pending' | 'accepted' | 'rejected',
+              from_user_name: 'Usuário desconhecido',
+              to_user_name: 'Usuário desconhecido',
+              task_title: transfer.tasks?.title || 'Tarefa sem título'
+            };
+          }
+        }));
+        
+        console.log('Histórico de transferências encontrado:', transfersWithNames);
+        return transfersWithNames;
+      } catch (error) {
+        console.error('Erro geral ao buscar histórico:', error);
+        return [];
+      }
     },
     enabled: !!user && !!companyId,
+    retry: 1,
   });
 }
 
