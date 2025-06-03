@@ -58,6 +58,7 @@ export function usePendingTransfers() {
       
       const transfers: TaskTransfer[] = (data || []).map(transfer => ({
         ...transfer,
+        transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
         from_user_name: transfer.from_user?.full_name,
         to_user_name: transfer.to_user?.full_name,
         task_title: transfer.task?.title
@@ -101,6 +102,7 @@ export function useTransferHistory(companyId?: string) {
       
       const transfers: TaskTransfer[] = (data || []).map(transfer => ({
         ...transfer,
+        transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
         from_user_name: transfer.from_user?.full_name,
         to_user_name: transfer.to_user?.full_name,
         task_title: transfer.task?.title

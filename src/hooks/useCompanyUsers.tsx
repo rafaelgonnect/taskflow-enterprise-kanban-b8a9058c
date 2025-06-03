@@ -5,6 +5,7 @@ import { useAuth } from './useAuth';
 
 export interface CompanyUser {
   id: string;
+  user_id: string;
   email: string;
   full_name: string;
   user_type: string;
@@ -26,6 +27,10 @@ export interface CompanyUser {
       description: string;
     };
   }[];
+  profiles?: {
+    full_name: string;
+    email: string;
+  };
 }
 
 export function useCompanyUsers(companyId?: string) {
@@ -79,7 +84,12 @@ export function useCompanyUsers(companyId?: string) {
       // Transformar os dados para o formato esperado
       const users: CompanyUser[] = (data || []).map(user => ({
         ...user,
-        is_active: user.user_companies[0]?.is_active || false
+        user_id: user.id,
+        is_active: user.user_companies[0]?.is_active || false,
+        profiles: {
+          full_name: user.full_name,
+          email: user.email
+        }
       }));
       
       console.log('Usuários encontrados:', users.length);
