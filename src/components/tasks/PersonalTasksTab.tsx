@@ -6,9 +6,7 @@ import { TaskFormDialog } from './TaskFormDialog';
 import { TaskDetailsDialog } from '../TaskDetailsDialog';
 import { TaskBoardUnified } from './TaskBoardUnified';
 import { TaskFiltersComponent } from './TaskFilters';
-import { AcceptableTasksSection } from './AcceptableTasksSection';
 import { useCreateTask, usePersonalTasks, Task } from '@/hooks/useTasks';
-import { usePublicDepartmentTasks, usePublicCompanyTasks } from '@/hooks/usePublicTasks';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,8 +23,6 @@ export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   
   const { data: personalTasks = [] } = usePersonalTasks(companyId);
-  const { data: publicDepartmentTasks = [] } = usePublicDepartmentTasks();
-  const { data: publicCompanyTasks = [] } = usePublicCompanyTasks(companyId);
   
   const { filters, setFilters, filteredTasks } = useTaskFilters(personalTasks, user?.id);
   
@@ -106,20 +102,6 @@ export const PersonalTasksTab = ({ companyId }: PersonalTasksTabProps) => {
         showOriginBadges={true}
         allowDragDrop={true}
       />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AcceptableTasksSection
-          tasks={publicDepartmentTasks}
-          title="Tarefas Departamentais Disponíveis"
-          emptyMessage="Nenhuma tarefa departamental disponível para aceitar"
-        />
-
-        <AcceptableTasksSection
-          tasks={publicCompanyTasks}
-          title="Tarefas Empresariais Disponíveis"
-          emptyMessage="Nenhuma tarefa empresarial disponível para aceitar"
-        />
-      </div>
 
       {selectedTask && (
         <TaskDetailsDialog

@@ -6,9 +6,8 @@ import { TaskFormDialog } from './TaskFormDialog';
 import { TaskDetailsDialog } from '../TaskDetailsDialog';
 import { TaskBoardUnified } from './TaskBoardUnified';
 import { TaskFiltersComponent } from './TaskFilters';
-import { AcceptableTasksSection } from './AcceptableTasksSection';
 import { useCreateTask, Task } from '@/hooks/useTasks';
-import { useDepartmentTasks, usePublicDepartmentTasks } from '@/hooks/usePublicTasks';
+import { useDepartmentTasks } from '@/hooks/usePublicTasks';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useToast } from '@/hooks/use-toast';
@@ -30,7 +29,6 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
   
   const { data: departments = [] } = useDepartments(companyId);
   const { data: departmentTasks = [] } = useDepartmentTasks(selectedDepartment);
-  const { data: publicDepartmentTasks = [] } = usePublicDepartmentTasks(selectedDepartment);
   
   const { filters, setFilters, filteredTasks } = useTaskFilters(departmentTasks, user?.id);
   
@@ -138,14 +136,6 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
               showOriginBadges={false}
               allowDragDrop={true}
             />
-
-            {publicDepartmentTasks.length > 0 && (
-              <AcceptableTasksSection
-                tasks={publicDepartmentTasks}
-                title="Tarefas Públicas do Departamento"
-                emptyMessage="Nenhuma tarefa pública disponível"
-              />
-            )}
           </TabsContent>
         ))}
       </Tabs>

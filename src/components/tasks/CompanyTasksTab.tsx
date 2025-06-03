@@ -1,14 +1,13 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Building } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { TaskFormDialog } from './TaskFormDialog';
 import { TaskDetailsDialog } from '../TaskDetailsDialog';
 import { TaskBoardUnified } from './TaskBoardUnified';
 import { TaskFiltersComponent } from './TaskFilters';
-import { AcceptableTasksSection } from './AcceptableTasksSection';
 import { useCreateTask, Task } from '@/hooks/useTasks';
-import { useCompanyTasks, usePublicCompanyTasks } from '@/hooks/usePublicTasks';
+import { useCompanyTasks } from '@/hooks/usePublicTasks';
 import { useTaskFilters } from '@/hooks/useTaskFilters';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,7 +24,6 @@ export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   
   const { data: companyTasks = [] } = useCompanyTasks(companyId);
-  const { data: publicCompanyTasks = [] } = usePublicCompanyTasks(companyId);
   
   const { filters, setFilters, filteredTasks } = useTaskFilters(companyTasks, user?.id);
   
@@ -102,14 +100,6 @@ export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
         showOriginBadges={false}
         allowDragDrop={true}
       />
-
-      {publicCompanyTasks.length > 0 && (
-        <AcceptableTasksSection
-          tasks={publicCompanyTasks}
-          title="Tarefas Empresariais Públicas"
-          emptyMessage="Nenhuma tarefa pública disponível"
-        />
-      )}
 
       {selectedTask && (
         <TaskDetailsDialog
