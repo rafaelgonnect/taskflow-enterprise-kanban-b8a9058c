@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Plus, Mail, CheckCircle, Clock, X, UserCog, Shield, FileText, MoreVertical, UserX, UserCheck, Filter, Search, Download, Settings, Eye } from 'lucide-react';
+import { Users, Plus, Mail, CheckCircle, Clock, X, UserCog, Shield, FileText, MoreVertical, UserX, UserCheck, Filter, Search, Download, Settings, Eye, Copy, Share } from 'lucide-react';
 import { UserPermissionsDialog } from '@/components/UserPermissionsDialog';
 
 export const UserManagement = () => {
@@ -97,6 +97,43 @@ export const UserManagement = () => {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleCopyInviteLink = async (invitation: any) => {
+    const inviteUrl = `${window.location.origin}/invite/${invitation.invite_code}`;
+    const inviteText = `🎉 Você foi convidado para fazer parte da equipe da ${selectedCompany?.name}!\n\n✨ Junte-se a nós e comece a colaborar em nossos projetos.\n\n🔗 Acesse o link abaixo para aceitar o convite:\n${inviteUrl}\n\n💼 Vamos trabalhar juntos!`;
+    
+    try {
+      await navigator.clipboard.writeText(inviteText);
+      toast({
+        title: 'Link copiado!',
+        description: 'O link do convite foi copiado para a área de transferência',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao copiar',
+        description: 'Não foi possível copiar o link',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleShareWhatsApp = (invitation: any) => {
+    const inviteUrl = `${window.location.origin}/invite/${invitation.invite_code}`;
+    const inviteText = `🎉 Olá! Você foi convidado para fazer parte da equipe da *${selectedCompany?.name}*!
+
+✨ Estamos muito animados em tê-lo conosco e esperamos que possa contribuir com seus talentos em nossos projetos.
+
+🔗 Para aceitar o convite e começar a trabalhar conosco, acesse o link abaixo:
+${inviteUrl}
+
+💼 Vamos construir algo incrível juntos!
+
+Atenciosamente,
+Equipe ${selectedCompany?.name}`;
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(inviteText)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const getStatusBadge = (status: string) => {
@@ -397,24 +434,50 @@ export const UserManagement = () => {
             ) : (
               <div className="space-y-3">
                 {invitations.map((invitation) => (
-                  <div key={invitation.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{invitation.email}</p>
-                      <p className="text-sm text-slate-500">
-                        Convidado por {invitation.invited_by_profile?.full_name}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        {new Date(invitation.created_at).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      {getStatusBadge(invitation.status)}
-                      {invitation.status === 'pending' && (
-                        <p className="text-xs text-slate-400 mt-1">
-                          Expira em {new Date(invitation.expires_at).toLocaleDateString('pt-BR')}
+                  <div key={invitation.id} className="p-3 border rounded-lg">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <p className="font-medium">{invitation.email}</p>
+                        <p className="text-sm text-slate-500">
+                          Convidado por {invitation.invited_by_profile?.full_name}
                         </p>
-                      )}
+                        <p className="text-xs text-slate-400">
+                          {new Date(invitation.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        {getStatusBadge(invitation.status)}
+                        {invitation.status === 'pending' && (
+                          <p className="text-xs text-slate-400 mt-1">
+                            Expira em {new Date(invitation.expires_at).toLocaleDateString('pt-BR')}
+                          </p>
+                        )}
+                      </div>
                     </div>
+                    
+                    {/* Botões de compartilhamento para convites pendentes */}
+                    {invitation.status === 'pending' && (
+                      <div className="flex gap-2 pt-2 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyInviteLink(invitation)}
+                          className="flex-1"
+                        >
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copiar Link
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleShareWhatsApp(invitation)}
+                          className="flex-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                        >
+                          <Share className="w-4 h-4 mr-2" />
+                          WhatsApp
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
