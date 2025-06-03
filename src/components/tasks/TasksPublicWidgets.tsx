@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { PublicDepartmentTasksWidget } from '../PublicDepartmentTasksWidget';
 import { PublicTasksDashboard } from '../PublicTasksDashboard';
 import { useCompanyContext } from '@/contexts/CompanyContext';

@@ -1,4 +1,3 @@
-
 import { CheckCircle, Clock, AlertCircle, Users } from "lucide-react";
 import { usePersonalTasks } from '@/hooks/useTasks';
 import { useCompanyContext } from '@/contexts/CompanyContext';
@@ -85,7 +84,7 @@ export const DashboardStats = () => {
         <p className="text-slate-600">Visão geral das suas tarefas e produtividade</p>
       </div>
 
-      {/* Widgets de Tarefas Públicas no Topo */}
+      {/* Widgets de Tarefas Públicas no Topo - Um ao lado do outro */}
       {selectedCompany && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <PublicDepartmentTasksWidget companyId={selectedCompany.id} />
