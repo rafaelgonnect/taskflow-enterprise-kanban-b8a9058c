@@ -34,79 +34,108 @@ export function usePendingTransfers() {
   return useQuery({
     queryKey: ['pending-transfers', user?.id],
     queryFn: async () => {
-      if (!user) return [];
+      console.log('usePendingTransfers executando...');
       
-      console.log('Buscando transferências pendentes para:', user.id);
+      if (!user?.id) {
+        console.log('usePendingTransfers: usuário não encontrado');
+        return [];
+      }
       
       try {
-        const { data, error } = await supabase
+        console.log('Buscando transferências pendentes para:', user.id);
+        
+        // Query simplificada primeiro
+        const { data: transfers, error: transfersError } = await supabase
           .from('task_transfers')
-          .select(`
-            *,
-            tasks!inner(title)
-          `)
+          .select('*')
           .eq('to_user_id', user.id)
           .eq('status', 'pending')
           .order('requested_at', { ascending: false });
         
-        if (error) {
-          console.error('Erro ao buscar transferências pendentes:', error);
-          return [];
+        if (transfersError) {
+          console.error('Erro ao buscar transferências:', transfersError);
+          throw transfersError;
         }
         
-        if (!data || data.length === 0) {
+        if (!transfers || transfers.length === 0) {
           console.log('Nenhuma transferência pendente encontrada');
           return [];
         }
-        
-        // Buscar nomes dos usuários separadamente de forma segura
-        const transfersWithNames = await Promise.all(data.map(async (transfer) => {
-          try {
-            const [fromUserResponse, toUserResponse] = await Promise.all([
-              transfer.from_user_id ? supabase
-                .from('profiles')
-                .select('full_name')
-                .eq('id', transfer.from_user_id)
-                .maybeSingle() : Promise.resolve({ data: null, error: null }),
-              transfer.to_user_id ? supabase
-                .from('profiles')
-                .select('full_name')
-                .eq('id', transfer.to_user_id)
-                .maybeSingle() : Promise.resolve({ data: null, error: null })
-            ]);
 
-            return {
-              ...transfer,
-              transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
-              status: transfer.status as 'pending' | 'accepted' | 'rejected',
-              from_user_name: fromUserResponse.data?.full_name || 'Usuário desconhecido',
-              to_user_name: toUserResponse.data?.full_name || 'Usuário desconhecido',
-              task_title: transfer.tasks?.title || 'Tarefa sem título'
-            };
-          } catch (err) {
-            console.error('Erro ao buscar dados do usuário:', err);
-            return {
-              ...transfer,
-              transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
-              status: transfer.status as 'pending' | 'accepted' | 'rejected',
-              from_user_name: 'Usuário desconhecido',
-              to_user_name: 'Usuário desconhecido',
-              task_title: transfer.tasks?.title || 'Tarefa sem título'
-            };
-          }
-        }));
+        console.log('Transferências brutas encontradas:', transfers.length);
         
-        console.log('Transferências pendentes encontradas:', transfersWithNames);
-        return transfersWithNames;
+        // Enriquecer dados em lote
+        const enrichedTransfers = await Promise.allSettled(
+          transfers.map(async (transfer) => {
+            try {
+              // Buscar dados da tarefa
+              const { data: task } = await supabase
+                .from('tasks')
+                .select('title')
+                .eq('id', transfer.task_id)
+                .single();
+
+              // Buscar dados dos usuários
+              const { data: fromUser } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', transfer.from_user_id || '')
+                .single();
+
+              const { data: toUser } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', transfer.to_user_id || '')
+                .single();
+
+              return {
+                ...transfer,
+                transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
+                status: transfer.status as 'pending' | 'accepted' | 'rejected',
+                task_title: task?.title || 'Tarefa sem título',
+                from_user_name: fromUser?.full_name || 'Usuário desconhecido',
+                to_user_name: toUser?.full_name || 'Usuário desconhecido'
+              };
+            } catch (error) {
+              console.error('Erro ao enriquecer transferência:', transfer.id, error);
+              return {
+                ...transfer,
+                transfer_type: transfer.transfer_type as 'delegation' | 'transfer',
+                status: transfer.status as 'pending' | 'accepted' | 'rejected',
+                task_title: 'Erro ao carregar',
+                from_user_name: 'Erro ao carregar',
+                to_user_name: 'Erro ao carregar'
+              };
+            }
+          })
+        );
+
+        // Filtrar apenas sucessos
+        const validTransfers = enrichedTransfers
+          .filter((result) => result.status === 'fulfilled')
+          .map((result) => (result as PromiseFulfilledResult<any>).value);
+
+        console.log('Transferências processadas com sucesso:', validTransfers.length);
+        return validTransfers;
+        
       } catch (error) {
         console.error('Erro geral ao buscar transferências:', error);
+        // Em caso de erro, retornar array vazio ao invés de throw
         return [];
       }
     },
-    enabled: !!user,
+    enabled: !!user?.id,
     refetchInterval: 30000,
-    retry: 1,
+    retry: (failureCount, error) => {
+      console.log('Tentativa de retry pendingTransfers:', failureCount, error);
+      return failureCount < 2;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutos
+    meta: {
+      onError: (error: any) => {
+        console.error('Erro na query de transferências pendentes:', error);
+      }
+    }
   });
 }
 

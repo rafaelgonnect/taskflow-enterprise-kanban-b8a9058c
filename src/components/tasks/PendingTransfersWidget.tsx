@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,22 +13,28 @@ import { ptBR } from 'date-fns/locale';
 
 export const PendingTransfersWidget = () => {
   const { toast } = useToast();
-  const { data: pendingTransfers = [], isLoading, error } = usePendingTransfers();
   const respondToTransfer = useRespondToTransfer();
   
+  // Estados sempre declarados na mesma ordem
   const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
   const [showResponseDialog, setShowResponseDialog] = useState(false);
   const [responseReason, setResponseReason] = useState('');
   const [actionType, setActionType] = useState<'accept' | 'reject'>('accept');
 
-  // Cleanup no desmonte do componente
-  useEffect(() => {
-    return () => {
-      setSelectedTransfer(null);
-      setShowResponseDialog(false);
-      setResponseReason('');
-    };
-  }, []);
+  // Hook sempre chamado, sem condições
+  const pendingTransfersQuery = usePendingTransfers();
+  
+  // Extrair dados de forma segura
+  const pendingTransfers = pendingTransfersQuery.data || [];
+  const isLoading = pendingTransfersQuery.isLoading;
+  const error = pendingTransfersQuery.error;
+
+  console.log('PendingTransfersWidget render:', {
+    isLoading,
+    error: error?.message,
+    transfersCount: pendingTransfers.length,
+    hasSelectedTransfer: !!selectedTransfer
+  });
 
   const handleResponse = async () => {
     if (!selectedTransfer) return;
@@ -65,10 +71,24 @@ export const PendingTransfersWidget = () => {
     setShowResponseDialog(true);
   };
 
-  // Tratamento de erro
+  // Renderização condicional apenas no JSX, não nos hooks
   if (error) {
     console.error('Erro no widget de transferências:', error);
-    return null; // Não renderizar em caso de erro
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-red-600" />
+            Transferências Pendentes - Erro
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <p className="text-sm text-red-600">Erro ao carregar transferências</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (isLoading) {
@@ -90,7 +110,7 @@ export const PendingTransfersWidget = () => {
     );
   }
 
-  if (!pendingTransfers || pendingTransfers.length === 0) {
+  if (pendingTransfers.length === 0) {
     return null;
   }
 
