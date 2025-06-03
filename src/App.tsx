@@ -17,6 +17,7 @@ import Tasks from "./pages/Tasks";
 import InviteAccept from "./pages/InviteAccept";
 import NotFound from "./pages/NotFound";
 import Roadmap from "./pages/Roadmap";
+import DatabaseReset from "./pages/DatabaseReset";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/invite/:inviteCode" element={<InviteAccept />} />
+              <Route path="/database-reset" element={<DatabaseReset />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <Layout>
