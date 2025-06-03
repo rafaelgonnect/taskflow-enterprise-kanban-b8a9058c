@@ -71,7 +71,10 @@ export type Permission =
   'view_task_analytics' |
   'create_departments' |
   'manage_department_members' |
-  'view_department_analytics';
+  'view_department_analytics' |
+  'delegate_tasks' |
+  'transfer_tasks' |
+  'accept_task_transfers';
 
 export interface UserRole {
   id: string;
@@ -130,4 +133,25 @@ export interface Task {
   updated_at: string;
   estimated_hours?: number;
   actual_hours?: number;
+  delegated_by?: string;
+  delegated_at?: string;
+  transfer_requested_by?: string;
+  transfer_requested_at?: string;
+  transfer_reason?: string;
+  previous_assignee_id?: string;
+}
+
+export interface TaskTransfer {
+  id: string;
+  task_id: string;
+  from_user_id?: string;
+  to_user_id?: string;
+  transfer_type: 'delegation' | 'transfer';
+  reason?: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  requested_by: string;
+  requested_at: string;
+  responded_at?: string;
+  response_reason?: string;
+  created_at: string;
 }

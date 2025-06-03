@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,13 +22,16 @@ import {
   Trash2,
   Edit,
   Send,
-  X
+  X,
+  ArrowRight,
+  UserCheck
 } from 'lucide-react';
 import { Task, useUpdateTask } from '@/hooks/useTasks';
 import { useTaskAttachments, useUploadAttachment, useDeleteAttachment } from '@/hooks/useTaskAttachments';
 import { useTaskComments, useCreateComment, useUpdateComment, useDeleteComment } from '@/hooks/useTaskComments';
 import { useTaskHistory } from '@/hooks/useTaskHistory';
 import { useStartTimer, useStopTimer } from '@/hooks/useTaskTimer';
+import { TaskTransferDialog } from './tasks/TaskTransferDialog';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -47,6 +49,7 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [timerDescription, setTimerDescription] = useState('');
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -288,6 +291,9 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
       case 'timer_stopped': return '⏸️';
       case 'comment_added': return '💬';
       case 'attachment_added': return '📎';
+      case 'task_delegated': return '👥';
+      case 'task_transferred': return '🔄';
+      case 'transfer_rejected': return '❌';
       default: return '📝';
     }
   };
@@ -300,402 +306,455 @@ export const TaskDetailsDialog = ({ task, isOpen, onClose, companyId }: TaskDeta
   });
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            {editMode ? (
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="text-lg font-semibold"
-                placeholder="Título da tarefa"
-              />
-            ) : (
-              <DialogTitle className="text-xl">{task.title}</DialogTitle>
-            )}
-            <div className="flex items-center gap-2">
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
               {editMode ? (
-                <>
-                  <Button onClick={handleSaveTask} size="sm" disabled={updateTask.isPending}>
-                    {updateTask.isPending ? 'Salvando...' : 'Salvar'}
-                  </Button>
-                  <Button variant="outline" onClick={() => setEditMode(false)} size="sm">
-                    Cancelar
-                  </Button>
-                </>
+                <Input
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="text-lg font-semibold"
+                  placeholder="Título da tarefa"
+                />
               ) : (
-                <Button variant="outline" onClick={() => setEditMode(true)} size="sm">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
+                <DialogTitle className="text-xl">{task.title}</DialogTitle>
+              )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowTransferDialog(true)}
+                  size="sm"
+                >
+                  <ArrowRight className="w-4 h-4 mr-2" />
+                  Delegar/Transferir
                 </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 text-sm text-slate-600">
-            <div className="flex items-center gap-2">
-              <Badge className={getPriorityColor(task.priority)}>
-                {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
-              </Badge>
-              <Badge className={getStatusColor(task.status)}>
-                {task.status === 'todo' ? 'A Fazer' : task.status === 'in_progress' ? 'Em Progresso' : 'Concluído'}
-              </Badge>
-              {task.is_timer_running && (
-                <Badge className="bg-green-100 text-green-700 border-green-200 animate-pulse">
-                  Timer Ativo
-                </Badge>
-              )}
-            </div>
-            {task.due_date && (
-              <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {new Date(task.due_date).toLocaleDateString('pt-BR')}
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {formatTime(task.total_time_minutes || 0)}
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div className="flex-1 overflow-hidden">
-          <Tabs defaultValue="details" className="h-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="details">Detalhes</TabsTrigger>
-              <TabsTrigger value="attachments">
-                Anexos ({attachments.length})
-              </TabsTrigger>
-              <TabsTrigger value="comments">
-                Comentários ({comments.length})
-              </TabsTrigger>
-              <TabsTrigger value="history">
-                Histórico ({history.length})
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="mt-4 h-[60vh] overflow-y-auto">
-              <TabsContent value="details" className="space-y-6">
                 {editMode ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">Descrição</label>
-                      <Textarea
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="Descrição da tarefa..."
-                        rows={4}
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-sm font-medium">Prioridade</label>
-                        <Select value={formData.priority} onValueChange={(value: 'high' | 'medium' | 'low') => setFormData({ ...formData, priority: value })}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="high">Alta</SelectItem>
-                            <SelectItem value="medium">Média</SelectItem>
-                            <SelectItem value="low">Baixa</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Data de entrega</label>
-                        <Input
-                          type="date"
-                          value={formData.dueDate}
-                          onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Tempo estimado (horas)</label>
-                        <Input
-                          type="number"
-                          value={formData.estimatedHours}
-                          onChange={(e) => setFormData({ ...formData, estimatedHours: e.target.value })}
-                          placeholder="Ex: 8"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <>
+                    <Button onClick={handleSaveTask} size="sm" disabled={updateTask.isPending}>
+                      {updateTask.isPending ? 'Salvando...' : 'Salvar'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setEditMode(false)} size="sm">
+                      Cancelar
+                    </Button>
+                  </>
                 ) : (
-                  <div className="space-y-4">
-                    {task.description && (
-                      <div>
-                        <h4 className="font-medium mb-2">Descrição</h4>
-                        <p className="text-slate-600 whitespace-pre-wrap">{task.description}</p>
-                      </div>
-                    )}
-                    
-                    <Separator />
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="font-medium mb-2">Tempo estimado</h4>
-                        <p className="text-slate-600">
-                          {task.estimated_hours ? `${task.estimated_hours}h` : 'Não definido'}
-                        </p>
-                      </div>
-                      <div>
-                        <h4 className="font-medium mb-2">Tempo gasto</h4>
-                        <p className="text-slate-600">
-                          {formatTime(task.total_time_minutes || 0)}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="space-y-3">
-                      <h4 className="font-medium">Controle de Tempo</h4>
-                      <div className="flex items-center gap-3">
-                        <Button
-                          onClick={handleTimerToggle}
-                          variant={task.is_timer_running ? "destructive" : "default"}
-                          disabled={startTimer.isPending || stopTimer.isPending}
-                          className={task.is_timer_running ? "animate-pulse" : ""}
-                        >
-                          {task.is_timer_running ? (
-                            <>
-                              <Pause className="w-4 h-4 mr-2" />
-                              Pausar Timer
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-4 h-4 mr-2" />
-                              Iniciar Timer
-                            </>
-                          )}
-                        </Button>
-                        
-                        {task.is_timer_running && (
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1 text-green-600">
-                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                              <span className="text-sm font-medium">Timer ativo</span>
-                            </div>
-                            <Input
-                              placeholder="Descrição do trabalho..."
-                              value={timerDescription}
-                              onChange={(e) => setTimerDescription(e.target.value)}
-                              className="w-48"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="attachments" className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() => document.getElementById('file-upload')?.click()}
-                    disabled={uploadAttachment.isPending}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {uploadAttachment.isPending ? 'Enviando...' : 'Adicionar Anexo'}
+                  <Button variant="outline" onClick={() => setEditMode(true)} size="sm">
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
                   </Button>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    accept="*/*"
-                  />
-                </div>
+                )}
+              </div>
+            </div>
 
-                <div className="space-y-2">
-                  {attachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-slate-400" />
+            <div className="flex items-center gap-4 text-sm text-slate-600">
+              <div className="flex items-center gap-2">
+                <Badge className={getPriorityColor(task.priority)}>
+                  {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
+                </Badge>
+                <Badge className={getStatusColor(task.status)}>
+                  {task.status === 'todo' ? 'A Fazer' : task.status === 'in_progress' ? 'Em Progresso' : 'Concluído'}
+                </Badge>
+                {task.is_timer_running && (
+                  <Badge className="bg-green-100 text-green-700 border-green-200 animate-pulse">
+                    Timer Ativo
+                  </Badge>
+                )}
+                {task.delegated_by && (
+                  <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+                    Delegada
+                  </Badge>
+                )}
+                {task.previous_assignee_id && (
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                    Transferida
+                  </Badge>
+                )}
+              </div>
+              {task.due_date && (
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  {new Date(task.due_date).toLocaleDateString('pt-BR')}
+                </div>
+              )}
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {formatTime(task.total_time_minutes || 0)}
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-hidden">
+            <Tabs defaultValue="details" className="h-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="details">Detalhes</TabsTrigger>
+                <TabsTrigger value="attachments">
+                  Anexos ({attachments.length})
+                </TabsTrigger>
+                <TabsTrigger value="comments">
+                  Comentários ({comments.length})
+                </TabsTrigger>
+                <TabsTrigger value="history">
+                  Histórico ({history.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <div className="mt-4 h-[60vh] overflow-y-auto">
+                <TabsContent value="details" className="space-y-6">
+                  {editMode ? (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium">Descrição</label>
+                        <Textarea
+                          value={formData.description}
+                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          placeholder="Descrição da tarefa..."
+                          rows={4}
+                        />
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <p className="font-medium">{attachment.file_name}</p>
-                          <p className="text-sm text-slate-500">
-                            {(attachment.file_size / 1024 / 1024).toFixed(2)} MB • {' '}
-                            {formatDistanceToNow(new Date(attachment.uploaded_at), { 
-                              addSuffix: true, 
-                              locale: ptBR 
-                            })}
+                          <label className="text-sm font-medium">Prioridade</label>
+                          <Select value={formData.priority} onValueChange={(value: 'high' | 'medium' | 'low') => setFormData({ ...formData, priority: value })}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="high">Alta</SelectItem>
+                              <SelectItem value="medium">Média</SelectItem>
+                              <SelectItem value="low">Baixa</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Data de entrega</label>
+                          <Input
+                            type="date"
+                            value={formData.dueDate}
+                            onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Tempo estimado (horas)</label>
+                          <Input
+                            type="number"
+                            value={formData.estimatedHours}
+                            onChange={(e) => setFormData({ ...formData, estimatedHours: e.target.value })}
+                            placeholder="Ex: 8"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {task.description && (
+                        <div>
+                          <h4 className="font-medium mb-2">Descrição</h4>
+                          <p className="text-slate-600 whitespace-pre-wrap">{task.description}</p>
+                        </div>
+                      )}
+                      
+                      {(task.delegated_by || task.previous_assignee_id) && (
+                        <>
+                          <Separator />
+                          <div className="space-y-2">
+                            <h4 className="font-medium">Informações de Transferência</h4>
+                            {task.delegated_by && (
+                              <div className="flex items-center gap-2 text-blue-600">
+                                <UserCheck className="w-4 h-4" />
+                                <span className="text-sm">
+                                  Tarefa delegada {task.delegated_at && `em ${new Date(task.delegated_at).toLocaleDateString('pt-BR')}`}
+                                </span>
+                              </div>
+                            )}
+                            {task.previous_assignee_id && (
+                              <div className="flex items-center gap-2 text-purple-600">
+                                <ArrowRight className="w-4 h-4" />
+                                <span className="text-sm">Tarefa transferida de outro usuário</span>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                      
+                      <Separator />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-medium mb-2">Tempo estimado</h4>
+                          <p className="text-slate-600">
+                            {task.estimated_hours ? `${task.estimated_hours}h` : 'Não definido'}
+                          </p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-2">Tempo gasto</h4>
+                          <p className="text-slate-600">
+                            {formatTime(task.total_time_minutes || 0)}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(attachment.file_url, '_blank')}
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => deleteAttachment.mutate({
-                            id: attachment.id,
-                            fileName: attachment.file_url.split('/').pop() || '',
-                            taskId: task.id
-                          })}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-3">
+                        <h4 className="font-medium">Controle de Tempo</h4>
+                        <div className="flex items-center gap-3">
+                          <Button
+                            onClick={handleTimerToggle}
+                            variant={task.is_timer_running ? "destructive" : "default"}
+                            disabled={startTimer.isPending || stopTimer.isPending}
+                            className={task.is_timer_running ? "animate-pulse" : ""}
+                          >
+                            {task.is_timer_running ? (
+                              <>
+                                <Pause className="w-4 h-4 mr-2" />
+                                Pausar Timer
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-4 h-4 mr-2" />
+                                Iniciar Timer
+                              </>
+                            )}
+                          </Button>
+                          
+                          {task.is_timer_running && (
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 text-green-600">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="text-sm font-medium">Timer ativo</span>
+                              </div>
+                              <Input
+                                placeholder="Descrição do trabalho..."
+                                value={timerDescription}
+                                onChange={(e) => setTimerDescription(e.target.value)}
+                                className="w-48"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  ))}
-                  
-                  {attachments.length === 0 && (
-                    <div className="text-center py-8 text-slate-500">
-                      <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>Nenhum anexo encontrado</p>
-                    </div>
                   )}
-                </div>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="comments" className="space-y-4">
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder="Adicionar um comentário..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    rows={3}
-                  />
-                  <Button 
-                    onClick={handleCreateComment}
-                    disabled={!newComment.trim() || createComment.isPending}
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
+                <TabsContent value="attachments" className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => document.getElementById('file-upload')?.click()}
+                      disabled={uploadAttachment.isPending}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {uploadAttachment.isPending ? 'Enviando...' : 'Adicionar Anexo'}
+                    </Button>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      accept="*/*"
+                    />
+                  </div>
 
-                <div className="space-y-4">
-                  {comments.map((comment) => (
-                    <div key={comment.id} className="border rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
+                  <div className="space-y-2">
+                    {attachments.map((attachment) => (
+                      <div key={attachment.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-slate-400" />
+                          <div>
+                            <p className="font-medium">{attachment.file_name}</p>
+                            <p className="text-sm text-slate-500">
+                              {(attachment.file_size / 1024 / 1024).toFixed(2)} MB • {' '}
+                              {formatDistanceToNow(new Date(attachment.uploaded_at), { 
+                                addSuffix: true, 
+                                locale: ptBR 
+                              })}
+                            </p>
+                          </div>
+                        </div>
                         <div className="flex items-center gap-2">
-                          <Avatar className="w-6 h-6">
-                            <AvatarFallback className="text-xs">
-                              {comment.user_name?.charAt(0)?.toUpperCase() || 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium text-sm">{comment.user_name}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(attachment.file_url, '_blank')}
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteAttachment.mutate({
+                              id: attachment.id,
+                              fileName: attachment.file_url.split('/').pop() || '',
+                              taskId: task.id
+                            })}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {attachments.length === 0 && (
+                      <div className="text-center py-8 text-slate-500">
+                        <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>Nenhum anexo encontrado</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="comments" className="space-y-4">
+                  <div className="flex gap-2">
+                    <Textarea
+                      placeholder="Adicionar um comentário..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      rows={3}
+                    />
+                    <Button 
+                      onClick={handleCreateComment}
+                      disabled={!newComment.trim() || createComment.isPending}
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {comments.map((comment) => (
+                      <div key={comment.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="w-6 h-6">
+                              <AvatarFallback className="text-xs">
+                                {comment.user_name?.charAt(0)?.toUpperCase() || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-sm">{comment.user_name}</span>
+                            <span className="text-xs text-slate-500">
+                              {formatDistanceToNow(new Date(comment.created_at), { 
+                                addSuffix: true, 
+                                locale: ptBR 
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingComment(comment.id);
+                                setEditCommentText(comment.content);
+                              }}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteComment.mutate({ id: comment.id, taskId: task.id })}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {editingComment === comment.id ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editCommentText}
+                              onChange={(e) => setEditCommentText(e.target.value)}
+                              rows={2}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleUpdateComment(comment.id)}
+                                disabled={!editCommentText.trim()}
+                              >
+                                Salvar
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingComment(null);
+                                  setEditCommentText('');
+                                }}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-slate-700 whitespace-pre-wrap">{comment.content}</p>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {comments.length === 0 && (
+                      <div className="text-center py-8 text-slate-500">
+                        <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>Nenhum comentário encontrado</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="history" className="space-y-3">
+                  {history.map((entry) => (
+                    <div key={entry.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                      <span className="text-lg">{getHistoryIcon(entry.action)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm">{entry.user_name}</span>
                           <span className="text-xs text-slate-500">
-                            {formatDistanceToNow(new Date(comment.created_at), { 
+                            {formatDistanceToNow(new Date(entry.changed_at), { 
                               addSuffix: true, 
                               locale: ptBR 
                             })}
                           </span>
                         </div>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingComment(comment.id);
-                              setEditCommentText(comment.content);
-                            }}
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteComment.mutate({ id: comment.id, taskId: task.id })}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                        <div className="text-sm text-slate-600">
+                          {entry.action === 'created' && 'Criou a tarefa'}
+                          {entry.action === 'status_changed' && 
+                            `Alterou o status de "${entry.old_value}" para "${entry.new_value}"`}
+                          {entry.action === 'priority_changed' && 
+                            `Alterou a prioridade de "${entry.old_value}" para "${entry.new_value}"`}
+                          {entry.action === 'title_changed' && 
+                            `Alterou o título para "${entry.new_value}"`}
+                          {entry.action === 'timer_started' && 'Iniciou o cronômetro'}
+                          {entry.action === 'timer_stopped' && 'Pausou o cronômetro'}
+                          {entry.action === 'comment_added' && entry.new_value}
+                          {entry.action === 'attachment_added' && entry.new_value}
+                          {entry.action === 'task_delegated' && entry.new_value}
+                          {entry.action === 'task_transferred' && entry.new_value}
+                          {entry.action === 'transfer_rejected' && entry.new_value}
                         </div>
                       </div>
-                      
-                      {editingComment === comment.id ? (
-                        <div className="space-y-2">
-                          <Textarea
-                            value={editCommentText}
-                            onChange={(e) => setEditCommentText(e.target.value)}
-                            rows={2}
-                          />
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => handleUpdateComment(comment.id)}
-                              disabled={!editCommentText.trim()}
-                            >
-                              Salvar
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setEditingComment(null);
-                                setEditCommentText('');
-                              }}
-                            >
-                              Cancelar
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-slate-700 whitespace-pre-wrap">{comment.content}</p>
-                      )}
                     </div>
                   ))}
                   
-                  {comments.length === 0 && (
+                  {history.length === 0 && (
                     <div className="text-center py-8 text-slate-500">
-                      <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>Nenhum comentário encontrado</p>
+                      <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p>Nenhum histórico encontrado</p>
                     </div>
                   )}
-                </div>
-              </TabsContent>
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-              <TabsContent value="history" className="space-y-3">
-                {history.map((entry) => (
-                  <div key={entry.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                    <span className="text-lg">{getHistoryIcon(entry.action)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">{entry.user_name}</span>
-                        <span className="text-xs text-slate-500">
-                          {formatDistanceToNow(new Date(entry.changed_at), { 
-                            addSuffix: true, 
-                            locale: ptBR 
-                          })}
-                        </span>
-                      </div>
-                      <div className="text-sm text-slate-600">
-                        {entry.action === 'created' && 'Criou a tarefa'}
-                        {entry.action === 'status_changed' && 
-                          `Alterou o status de "${entry.old_value}" para "${entry.new_value}"`}
-                        {entry.action === 'priority_changed' && 
-                          `Alterou a prioridade de "${entry.old_value}" para "${entry.new_value}"`}
-                        {entry.action === 'title_changed' && 
-                          `Alterou o título para "${entry.new_value}"`}
-                        {entry.action === 'timer_started' && 'Iniciou o cronômetro'}
-                        {entry.action === 'timer_stopped' && 'Pausou o cronômetro'}
-                        {entry.action === 'comment_added' && entry.new_value}
-                        {entry.action === 'attachment_added' && entry.new_value}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                {history.length === 0 && (
-                  <div className="text-center py-8 text-slate-500">
-                    <History className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>Nenhum histórico encontrado</p>
-                  </div>
-                )}
-              </TabsContent>
-            </div>
-          </Tabs>
-        </div>
-      </DialogContent>
-    </Dialog>
+      <TaskTransferDialog
+        task={task}
+        isOpen={showTransferDialog}
+        onClose={() => setShowTransferDialog(false)}
+        companyId={companyId}
+      />
+    </>
   );
 };

@@ -25,6 +25,12 @@ export interface Task {
   is_public?: boolean;
   accepted_by?: string;
   accepted_at?: string;
+  delegated_by?: string;
+  delegated_at?: string;
+  transfer_requested_by?: string;
+  transfer_requested_at?: string;
+  transfer_reason?: string;
+  previous_assignee_id?: string;
 }
 
 export interface CreateTaskData {

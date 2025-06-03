@@ -1,8 +1,10 @@
+
 import { CheckCircle, Clock, AlertCircle, Users } from "lucide-react";
 import { usePersonalTasks } from '@/hooks/useTasks';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { PublicTasksDashboard } from './PublicTasksDashboard';
 import { PublicDepartmentTasksWidget } from './PublicDepartmentTasksWidget';
+import { PendingTransfersWidget } from './tasks/PendingTransfersWidget';
 
 export const DashboardStats = () => {
   const { selectedCompany } = useCompanyContext();
@@ -84,13 +86,16 @@ export const DashboardStats = () => {
         <p className="text-slate-600">Visão geral das suas tarefas e produtividade</p>
       </div>
 
-      {/* Widgets de Tarefas Públicas no Topo - Um ao lado do outro */}
+      {/* Widgets de Tarefas Públicas no Topo */}
       {selectedCompany && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <PublicDepartmentTasksWidget companyId={selectedCompany.id} />
           <PublicTasksDashboard companyId={selectedCompany.id} />
         </div>
       )}
+
+      {/* Widget de Transferências Pendentes */}
+      <PendingTransfersWidget />
 
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

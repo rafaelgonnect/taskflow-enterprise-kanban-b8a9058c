@@ -904,6 +904,59 @@ export type Database = {
           },
         ]
       }
+      task_transfers: {
+        Row: {
+          created_at: string
+          from_user_id: string | null
+          id: string
+          reason: string | null
+          requested_at: string
+          requested_by: string
+          responded_at: string | null
+          response_reason: string | null
+          status: string
+          task_id: string
+          to_user_id: string | null
+          transfer_type: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          reason?: string | null
+          requested_at?: string
+          requested_by: string
+          responded_at?: string | null
+          response_reason?: string | null
+          status?: string
+          task_id: string
+          to_user_id?: string | null
+          transfer_type: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          reason?: string | null
+          requested_at?: string
+          requested_by?: string
+          responded_at?: string | null
+          response_reason?: string | null
+          status?: string
+          task_id?: string
+          to_user_id?: string | null
+          transfer_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_transfers_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           accepted_at: string | null
@@ -914,6 +967,8 @@ export type Database = {
           created_at: string
           created_by: string
           current_timer_start: string | null
+          delegated_at: string | null
+          delegated_by: string | null
           department_id: string | null
           description: string | null
           due_date: string | null
@@ -921,11 +976,15 @@ export type Database = {
           id: string
           is_public: boolean | null
           is_timer_running: boolean | null
+          previous_assignee_id: string | null
           priority: string
           status: string
           task_type: string
           title: string
           total_time_minutes: number | null
+          transfer_reason: string | null
+          transfer_requested_at: string | null
+          transfer_requested_by: string | null
           updated_at: string
         }
         Insert: {
@@ -937,6 +996,8 @@ export type Database = {
           created_at?: string
           created_by: string
           current_timer_start?: string | null
+          delegated_at?: string | null
+          delegated_by?: string | null
           department_id?: string | null
           description?: string | null
           due_date?: string | null
@@ -944,11 +1005,15 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           is_timer_running?: boolean | null
+          previous_assignee_id?: string | null
           priority?: string
           status?: string
           task_type?: string
           title: string
           total_time_minutes?: number | null
+          transfer_reason?: string | null
+          transfer_requested_at?: string | null
+          transfer_requested_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -960,6 +1025,8 @@ export type Database = {
           created_at?: string
           created_by?: string
           current_timer_start?: string | null
+          delegated_at?: string | null
+          delegated_by?: string | null
           department_id?: string | null
           description?: string | null
           due_date?: string | null
@@ -967,11 +1034,15 @@ export type Database = {
           id?: string
           is_public?: boolean | null
           is_timer_running?: boolean | null
+          previous_assignee_id?: string | null
           priority?: string
           status?: string
           task_type?: string
           title?: string
           total_time_minutes?: number | null
+          transfer_reason?: string | null
+          transfer_requested_at?: string | null
+          transfer_requested_by?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1185,6 +1256,14 @@ export type Database = {
       get_invitation_by_code: {
         Args: { invite_code: string }
         Returns: Json
+      }
+      process_task_transfer: {
+        Args: {
+          transfer_id_param: string
+          action_param: string
+          response_reason_param?: string
+        }
+        Returns: boolean
       }
       user_has_permission: {
         Args: {
