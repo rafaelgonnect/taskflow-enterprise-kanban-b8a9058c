@@ -43,7 +43,10 @@ const AVAILABLE_PERMISSIONS: Permission[] = [
   'view_task_analytics',
   'create_departments',
   'manage_department_members',
-  'view_department_analytics'
+  'view_department_analytics',
+  'delegate_tasks',
+  'transfer_tasks',
+  'accept_task_transfers'
 ];
 
 const PERMISSION_LABELS: Record<Permission, string> = {
@@ -70,7 +73,10 @@ const PERMISSION_LABELS: Record<Permission, string> = {
   'view_task_analytics': 'Ver Análises de Tarefas',
   'create_departments': 'Criar Departamentos',
   'manage_department_members': 'Gerenciar Membros do Departamento',
-  'view_department_analytics': 'Ver Análises do Departamento'
+  'view_department_analytics': 'Ver Análises do Departamento',
+  'delegate_tasks': 'Delegar Tarefas',
+  'transfer_tasks': 'Transferir Tarefas',
+  'accept_task_transfers': 'Aceitar Transferências de Tarefas'
 };
 
 const ROLE_COLORS = [

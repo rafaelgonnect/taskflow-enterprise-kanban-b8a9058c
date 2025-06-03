@@ -63,7 +63,7 @@ export function useCreateRole() {
           .insert(
             data.permissions.map(permission => ({
               role_id: role.id,
-              permission,
+              permission: permission as any, // Type assertion para contornar incompatibilidade temporária
             }))
           );
         
@@ -132,7 +132,7 @@ export function useUpdateRole() {
             .insert(
               data.permissions.map(permission => ({
                 role_id: data.roleId,
-                permission,
+                permission: permission as any, // Type assertion para contornar incompatibilidade temporária
               }))
             );
           
