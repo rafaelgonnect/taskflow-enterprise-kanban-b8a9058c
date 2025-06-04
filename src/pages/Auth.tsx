@@ -96,7 +96,7 @@ export default function Auth() {
           </div>
           <CardTitle className="text-2xl">taskflow</CardTitle>
           <CardDescription>
-            Sistema de Gestão de Tarefas Multi-empresas
+            O MELHOR Sistema de Gestão de Tarefas Multi-empresas
           </CardDescription>
         </CardHeader>
         <CardContent>
