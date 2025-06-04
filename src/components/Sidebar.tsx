@@ -6,6 +6,12 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   Home,
   Building2,
@@ -128,6 +134,7 @@ export const Sidebar = () => {
 
           <Separator />
 
+
           <Button
             variant={adminItems.some((i) => i.path === location.pathname) ? 'default' : 'ghost'}
             className={cn(
@@ -166,6 +173,73 @@ export const Sidebar = () => {
               })}
             </div>
           )}
+
+
+          {isCollapsed ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={adminItems.some((i) => i.path === location.pathname) ? 'default' : 'ghost'}
+                  className={cn('w-full justify-center px-2')}
+                >
+                  <Shield className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="start">
+                {adminItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={item.path}
+                      onSelect={() => handleNavigation(item.path)}
+                    >
+                      <Icon className="mr-2 h-4 w-4" />
+                      {item.title}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button
+                variant={adminItems.some((i) => i.path === location.pathname) ? 'default' : 'ghost'}
+                className="w-full justify-start gap-3"
+                onClick={() => setIsAdminOpen(!isAdminOpen)}
+              >
+                <Shield className="w-4 h-4" />
+                <span>Administração</span>
+                <ChevronDown
+                  className={cn(
+                    'ml-auto w-4 h-4 transition-transform',
+                    isAdminOpen && 'rotate-180'
+                  )}
+                />
+              </Button>
+              {isAdminOpen && (
+                <div className="ml-6 space-y-1">
+                  {adminItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <Button
+                        key={item.path}
+                        variant={isActive ? 'default' : 'ghost'}
+                        className="w-full justify-start gap-3"
+                        onClick={() => handleNavigation(item.path)}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+
+
         </nav>
       </ScrollArea>
     </div>
