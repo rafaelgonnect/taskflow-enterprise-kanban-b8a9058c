@@ -87,16 +87,7 @@ export function useUploadAttachment() {
         throw error;
       }
 
-      // Criar entrada no histórico para o anexo
-      await supabase
-        .from('task_history')
-        .insert({
-          task_id: taskId,
-          action: 'attachment_added',
-          new_value: `Anexo adicionado: ${file.name}`,
-          changed_by: user.id,
-        });
-      
+      // Remover criação manual de histórico - deixar apenas o trigger do banco
       console.log('Anexo salvo com sucesso:', data);
       return data;
     },
