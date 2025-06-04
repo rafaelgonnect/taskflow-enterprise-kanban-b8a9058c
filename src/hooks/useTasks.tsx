@@ -130,7 +130,6 @@ export function useCreateTask() {
         throw error;
       }
 
-      // Remover criação manual de histórico - deixar apenas o trigger do banco
       console.log('Tarefa criada com sucesso:', data);
       return data;
     },
@@ -179,7 +178,6 @@ export function useUpdateTask() {
         throw error;
       }
 
-      // Remover criação manual de histórico - deixar apenas o trigger do banco
       console.log('Tarefa atualizada com sucesso:', data);
       return data;
     },
@@ -251,7 +249,6 @@ export function useUpdateTaskStatus() {
         throw error;
       }
 
-      // Remover criação manual de histórico - deixar apenas o trigger do banco
       console.log('Status atualizado com sucesso:', data);
       return data;
     },
