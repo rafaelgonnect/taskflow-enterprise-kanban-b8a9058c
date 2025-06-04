@@ -128,8 +128,8 @@ export default function CompanySettings() {
         </div>
 
         <AuditLogsDialog 
-          open={showAuditLogs} 
-          onOpenChange={setShowAuditLogs}
+          isOpen={showAuditLogs} 
+          onClose={() => setShowAuditLogs(false)}
           companyId={selectedCompany.id}
         />
       </div>

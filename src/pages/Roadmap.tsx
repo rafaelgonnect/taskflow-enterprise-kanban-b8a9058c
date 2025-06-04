@@ -6,8 +6,11 @@ import { DocumentationTab } from "@/components/roadmap/DocumentationTab";
 import { AIAnalysisPanel } from "@/components/roadmap/AIAnalysisPanel";
 import { RoadmapSeeder } from "@/components/roadmap/RoadmapSeeder";
 import { RoadmapStats } from "@/components/roadmap/RoadmapStats";
+import { useRoadmap } from "@/hooks/useRoadmap";
 
 export default function Roadmap() {
+  const { data: roadmapItems = [] } = useRoadmap();
+
   return (
     <Layout>
       <div className="container mx-auto py-6">
@@ -31,7 +34,7 @@ export default function Roadmap() {
           </TabsList>
 
           <TabsContent value="kanban">
-            <RoadmapKanban />
+            <RoadmapKanban items={roadmapItems} />
           </TabsContent>
 
           <TabsContent value="documentation">
