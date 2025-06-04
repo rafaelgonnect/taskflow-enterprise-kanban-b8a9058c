@@ -94,7 +94,7 @@ export default function Auth() {
           <div className="flex justify-center mb-4">
             <Building2 className="h-12 w-12 text-blue-600" />
           </div>
-          <CardTitle className="text-2xl">TaskFlow SaaS</CardTitle>
+          <CardTitle className="text-2xl">taskflow</CardTitle>
           <CardDescription>
             Sistema de Gestão de Tarefas Multi-empresas
           </CardDescription>
