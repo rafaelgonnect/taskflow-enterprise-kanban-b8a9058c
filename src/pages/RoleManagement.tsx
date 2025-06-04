@@ -1,8 +1,11 @@
 
+import { Layout } from '@/components/Layout';
 import { RoleManagement as RoleManagementComponent } from '@/components/RoleManagement';
 
-const RoleManagement = () => {
-  return <RoleManagementComponent />;
-};
-
-export default RoleManagement;
+export default function RoleManagement() {
+  return (
+    <Layout>
+      <RoleManagementComponent />
+    </Layout>
+  );
+}
