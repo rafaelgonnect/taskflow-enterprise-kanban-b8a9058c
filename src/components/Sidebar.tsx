@@ -31,6 +31,7 @@ export const Sidebar = () => {
   const navigate = useNavigate();
   const { selectedCompany } = useCompanyContext();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   const menuItems = [
     {
@@ -133,6 +134,70 @@ export const Sidebar = () => {
 
           <Separator />
 
+
+          {isCollapsed ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={adminItems.some((i) => i.path === location.pathname) ? 'default' : 'ghost'}
+                  className={cn('w-full justify-center px-2')}
+                >
+                  <Shield className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="start">
+                {adminItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={item.path}
+                      onSelect={() => handleNavigation(item.path)}
+                    >
+                      <Icon className="mr-2 h-4 w-4" />
+                      {item.title}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button
+                variant={adminItems.some((i) => i.path === location.pathname) ? 'default' : 'ghost'}
+                className="w-full justify-start gap-3"
+                onClick={() => setIsAdminOpen(!isAdminOpen)}
+              >
+                <Shield className="w-4 h-4" />
+                <span>Administração</span>
+                <ChevronDown
+                  className={cn(
+                    'ml-auto w-4 h-4 transition-transform',
+                    isAdminOpen && 'rotate-180'
+                  )}
+                />
+              </Button>
+              {isAdminOpen && (
+                <div className="ml-6 space-y-1">
+                  {adminItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <Button
+                        key={item.path}
+                        variant={isActive ? 'default' : 'ghost'}
+                        className="w-full justify-start gap-3"
+                        onClick={() => handleNavigation(item.path)}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -166,6 +231,7 @@ export const Sidebar = () => {
               })}
             </DropdownMenuContent>
           </DropdownMenu>
+
         </nav>
       </ScrollArea>
     </div>
