@@ -25,7 +25,12 @@ export const Sidebar = () => {
   const navigate = useNavigate();
   const { selectedCompany } = useCompanyContext();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  // Expand administration dropdown when visiting an admin route
+  const [isAdminOpen, setIsAdminOpen] = useState(() =>
+    ['/users', '/departments', '/roles'].some((p) =>
+      location.pathname.startsWith(p)
+    )
+  );
 
   const menuItems = [
     {
