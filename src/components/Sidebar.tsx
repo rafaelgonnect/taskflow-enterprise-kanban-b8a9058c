@@ -135,6 +135,46 @@ export const Sidebar = () => {
           <Separator />
 
 
+          <Button
+            variant={adminItems.some((i) => i.path === location.pathname) ? 'default' : 'ghost'}
+            className={cn(
+              'w-full justify-start gap-3',
+              isCollapsed && 'justify-center px-2'
+            )}
+            onClick={() => setIsAdminOpen(!isAdminOpen)}
+          >
+            <Shield className="w-4 h-4" />
+            {!isCollapsed && <span>Administração</span>}
+            {!isCollapsed && (
+              <ChevronDown
+                className={cn(
+                  'ml-auto w-4 h-4 transition-transform',
+                  isAdminOpen && 'rotate-180'
+                )}
+              />
+            )}
+          </Button>
+          {!isCollapsed && isAdminOpen && (
+            <div className="ml-6 space-y-1">
+              {adminItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Button
+                    key={item.path}
+                    variant={isActive ? 'default' : 'ghost'}
+                    className="w-full justify-start gap-3"
+                    onClick={() => handleNavigation(item.path)}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          )}
+
+
           {isCollapsed ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -198,39 +238,7 @@ export const Sidebar = () => {
             </>
           )}
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant={adminItems.some((i) => i.path === location.pathname) ? 'default' : 'ghost'}
-                className={cn(
-                  'w-full justify-start gap-3',
-                  isCollapsed && 'justify-center px-2'
-                )}
-              >
-                <Shield className="w-4 h-4" />
-                {!isCollapsed && (
-                  <>
-                    <span>Administração</span>
-                    <ChevronDown className="ml-auto w-4 h-4" />
-                  </>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="start">
-              {adminItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <DropdownMenuItem
-                    key={item.path}
-                    onSelect={() => handleNavigation(item.path)}
-                  >
-                    <Icon className="mr-2 h-4 w-4" />
-                    {item.title}
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+
 
         </nav>
       </ScrollArea>
