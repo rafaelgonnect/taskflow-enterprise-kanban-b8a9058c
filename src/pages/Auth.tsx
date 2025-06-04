@@ -96,7 +96,7 @@ export default function Auth() {
           </div>
           <CardTitle className="text-2xl">TaskFlow SaaS</CardTitle>
           <CardDescription>
-            O MELHOR Sistema de Gestão de Tarefas Multi-empresas 2
+            O MELHOR Sistema de Gestão de Tarefas Multi-empresas
           </CardDescription>
         </CardHeader>
         <CardContent>
