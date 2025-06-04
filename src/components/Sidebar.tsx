@@ -6,13 +6,21 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
-  Home, 
-  Building2, 
-  Users, 
+  Home,
+  Building2,
+  Users,
   Settings,
   Building,
   CheckSquare,
+  Shield,
+  ChevronDown,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -36,6 +44,14 @@ export const Sidebar = () => {
       path: '/tasks',
     },
     {
+      title: 'Configurações',
+      icon: Settings,
+      path: '/company-settings',
+    },
+  ];
+
+  const adminItems = [
+    {
       title: 'Usuários',
       icon: Users,
       path: '/users',
@@ -46,9 +62,9 @@ export const Sidebar = () => {
       path: '/departments',
     },
     {
-      title: 'Configurações',
-      icon: Settings,
-      path: '/company-settings',
+      title: 'Funções',
+      icon: Shield,
+      path: '/roles',
     },
   ];
 
@@ -98,7 +114,7 @@ export const Sidebar = () => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <Button
                 key={item.path}
@@ -114,6 +130,42 @@ export const Sidebar = () => {
               </Button>
             );
           })}
+
+          <Separator />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={adminItems.some((i) => i.path === location.pathname) ? 'default' : 'ghost'}
+                className={cn(
+                  'w-full justify-start gap-3',
+                  isCollapsed && 'justify-center px-2'
+                )}
+              >
+                <Shield className="w-4 h-4" />
+                {!isCollapsed && (
+                  <>
+                    <span>Administração</span>
+                    <ChevronDown className="ml-auto w-4 h-4" />
+                  </>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="start">
+              {adminItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <DropdownMenuItem
+                    key={item.path}
+                    onSelect={() => handleNavigation(item.path)}
+                  >
+                    <Icon className="mr-2 h-4 w-4" />
+                    {item.title}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
       </ScrollArea>
     </div>
