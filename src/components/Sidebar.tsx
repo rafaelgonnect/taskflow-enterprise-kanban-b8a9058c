@@ -134,6 +134,7 @@ export const Sidebar = () => {
 
           <Separator />
 
+
           {isCollapsed ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -196,6 +197,41 @@ export const Sidebar = () => {
               )}
             </>
           )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant={adminItems.some((i) => i.path === location.pathname) ? 'default' : 'ghost'}
+                className={cn(
+                  'w-full justify-start gap-3',
+                  isCollapsed && 'justify-center px-2'
+                )}
+              >
+                <Shield className="w-4 h-4" />
+                {!isCollapsed && (
+                  <>
+                    <span>Administração</span>
+                    <ChevronDown className="ml-auto w-4 h-4" />
+                  </>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="start">
+              {adminItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <DropdownMenuItem
+                    key={item.path}
+                    onSelect={() => handleNavigation(item.path)}
+                  >
+                    <Icon className="mr-2 h-4 w-4" />
+                    {item.title}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
         </nav>
       </ScrollArea>
     </div>
