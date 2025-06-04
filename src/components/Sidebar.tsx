@@ -7,12 +7,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Home, 
-  Building2, 
-  Users, 
+  Home,
+  Building2,
+  Users,
   Settings,
   Building,
   CheckSquare,
+  Shield,
+  ChevronDown,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -23,6 +25,7 @@ export const Sidebar = () => {
   const navigate = useNavigate();
   const { selectedCompany } = useCompanyContext();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   const menuItems = [
     {
@@ -36,6 +39,14 @@ export const Sidebar = () => {
       path: '/tasks',
     },
     {
+      title: 'Configurações',
+      icon: Settings,
+      path: '/company-settings',
+    },
+  ];
+
+  const adminItems = [
+    {
       title: 'Usuários',
       icon: Users,
       path: '/users',
@@ -46,9 +57,19 @@ export const Sidebar = () => {
       path: '/departments',
     },
     {
-      title: 'Configurações',
-      icon: Settings,
-      path: '/company-settings',
+      title: 'Funções',
+      icon: Shield,
+      path: '/roles',
+    },
+  ];
+
+  const menuGroups = [
+    {
+      title: 'Administração',
+      icon: Shield,
+      open: isAdminOpen,
+      toggle: () => setIsAdminOpen(!isAdminOpen),
+      items: adminItems,
     },
   ];
 
@@ -98,7 +119,7 @@ export const Sidebar = () => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <Button
                 key={item.path}
@@ -112,6 +133,49 @@ export const Sidebar = () => {
                 <Icon className="w-4 h-4" />
                 {!isCollapsed && <span>{item.title}</span>}
               </Button>
+            );
+          })}
+
+          <Separator />
+
+          {menuGroups.map((group) => {
+            const GroupIcon = group.icon;
+            const isGroupActive = group.items.some((i) => i.path === location.pathname);
+            return (
+              <div key={group.title}>
+                <Button
+                  variant={isGroupActive ? 'default' : 'ghost'}
+                  className={cn('w-full justify-start gap-3', isCollapsed && 'justify-center px-2')}
+                  onClick={group.toggle}
+                >
+                  <GroupIcon className="w-4 h-4" />
+                  {!isCollapsed && <span>{group.title}</span>}
+                  {!isCollapsed && (
+                    <ChevronDown
+                      className={cn('ml-auto w-4 h-4 transition-transform', group.open && 'rotate-180')}
+                    />
+                  )}
+                </Button>
+                {!isCollapsed && group.open && (
+                  <div className="ml-6 space-y-1">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = location.pathname === item.path;
+                      return (
+                        <Button
+                          key={item.path}
+                          variant={isActive ? 'default' : 'ghost'}
+                          className="w-full justify-start gap-3"
+                          onClick={() => handleNavigation(item.path)}
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>
