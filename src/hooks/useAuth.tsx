@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,6 +23,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Função para converter dados do Supabase para o tipo Profile
+  const convertToProfile = (data: any): Profile | null => {
+    if (!data) return null;
+    
+    return {
+      id: data.id,
+      email: data.email,
+      full_name: data.full_name,
+      user_type: data.user_type,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      skills: Array.isArray(data.skills) ? data.skills : [],
+      languages: Array.isArray(data.languages) ? data.languages : [],
+      experience: data.experience || undefined
+    };
+  };
+
   const fetchProfile = async (userId: string) => {
     try {
       console.log('Buscando perfil para usuário:', userId);
@@ -38,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (profileData) {
         console.log('Perfil carregado com sucesso:', profileData);
-        return profileData;
+        return convertToProfile(profileData);
       } else {
         console.log('Nenhum perfil encontrado');
         return null;
@@ -67,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (existingProfile) {
         console.log('Perfil já existe:', existingProfile);
-        return existingProfile;
+        return convertToProfile(existingProfile);
       }
       
       // Se não existe, criar
@@ -92,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log('Perfil criado com sucesso:', newProfile);
-      return newProfile;
+      return convertToProfile(newProfile);
       
     } catch (err) {
       console.error('Erro inesperado ao criar perfil:', err);
@@ -118,8 +136,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     console.log('Perfil atualizado com sucesso:', updated);
-    setProfile(updated);
-    return updated;
+    const convertedProfile = convertToProfile(updated);
+    setProfile(convertedProfile);
+    return convertedProfile;
   };
 
   useEffect(() => {
