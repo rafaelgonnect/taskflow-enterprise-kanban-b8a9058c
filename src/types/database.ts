@@ -1,4 +1,3 @@
-
 export interface Profile {
   id: string;
   email: string;
@@ -6,6 +5,9 @@ export interface Profile {
   user_type: 'company_owner' | 'employee';
   created_at: string;
   updated_at: string;
+  skills?: string[];
+  languages?: string[];
+  experience?: string;
 }
 
 export interface Company {

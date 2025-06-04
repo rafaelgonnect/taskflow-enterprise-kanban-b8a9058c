@@ -360,24 +360,33 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          experience: string | null
           full_name: string
           id: string
+          languages: Json | null
+          skills: Json | null
           updated_at: string
           user_type: Database["public"]["Enums"]["user_type"]
         }
         Insert: {
           created_at?: string
           email: string
+          experience?: string | null
           full_name: string
           id: string
+          languages?: Json | null
+          skills?: Json | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
         }
         Update: {
           created_at?: string
           email?: string
+          experience?: string | null
           full_name?: string
           id?: string
+          languages?: Json | null
+          skills?: Json | null
           updated_at?: string
           user_type?: Database["public"]["Enums"]["user_type"]
         }

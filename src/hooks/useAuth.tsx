@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +11,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error?: any }>;
   signIn: (email: string, password: string) => Promise<{ error?: any }>;
   signOut: () => Promise<void>;
+  updateProfile: (data: { skills?: string[]; languages?: string[]; experience?: string; full_name?: string }) => Promise<Profile | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -78,7 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: user.id,
           email: user.email || '',
           full_name: user.user_metadata?.full_name || 'Usuário',
-          user_type: 'employee'
+          user_type: 'employee',
+          skills: [],
+          languages: [],
+          experience: null
         })
         .select()
         .single();
@@ -95,6 +98,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Erro inesperado ao criar perfil:', err);
       return null;
     }
+  };
+
+  const updateProfile = async (data: { skills?: string[]; languages?: string[]; experience?: string; full_name?: string }) => {
+    if (!user) throw new Error('Usuário não autenticado');
+    
+    console.log('Atualizando perfil:', data);
+    
+    const { data: updated, error } = await supabase
+      .from('profiles')
+      .update(data)
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao atualizar perfil:', error);
+      throw error;
+    }
+
+    console.log('Perfil atualizado com sucesso:', updated);
+    setProfile(updated);
+    return updated;
   };
 
   useEffect(() => {
@@ -243,6 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       signIn,
       signOut,
+      updateProfile,
     }}>
       {children}
     </AuthContext.Provider>

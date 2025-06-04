@@ -1,102 +1,54 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { CompanyProvider } from "@/contexts/CompanyContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Layout } from "@/components/Layout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import CompanySettings from "./pages/CompanySettings";
-import UserManagement from "./pages/UserManagement";
-import RoleManagement from "./pages/RoleManagement";
-import DepartmentManagement from "./pages/DepartmentManagement";
 import Tasks from "./pages/Tasks";
+import UserManagement from "./pages/UserManagement";
+import DepartmentManagement from "./pages/DepartmentManagement";
+import RoleManagement from "./pages/RoleManagement";
+import CompanySettings from "./pages/CompanySettings";
+import PublicTasks from "./pages/PublicTasks";
 import InviteAccept from "./pages/InviteAccept";
-import NotFound from "./pages/NotFound";
 import Roadmap from "./pages/Roadmap";
-import DatabaseReset from "./pages/DatabaseReset";
+import Profile from "./pages/Profile";
+import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutos
-      retry: 2,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CompanyProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/invite/:inviteCode" element={<InviteAccept />} />
-              <Route path="/database-reset" element={<DatabaseReset />} />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Index />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/company-settings" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <CompanySettings />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/users" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <UserManagement />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/roles" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <RoleManagement />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/departments" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <DepartmentManagement />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/tasks" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Tasks />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              <Route path="/roadmap" element={
-                <ProtectedRoute>
-                  <Layout>
-                    <Roadmap />
-                  </Layout>
-                </ProtectedRoute>
-              } />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </CompanyProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <CompanyProvider>
+            <Toaster />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/invite/:inviteCode" element={<InviteAccept />} />
+                <Route path="/public-tasks" element={<PublicTasks />} />
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/tasks" element={<ProtectedRoute><Tasks /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/users" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+                <Route path="/departments" element={<ProtectedRoute><DepartmentManagement /></ProtectedRoute>} />
+                <Route path="/roles" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
+                <Route path="/company-settings" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
+                <Route path="/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </CompanyProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

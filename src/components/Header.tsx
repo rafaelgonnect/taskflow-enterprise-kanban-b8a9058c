@@ -1,5 +1,6 @@
 
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
   DropdownMenu, 
@@ -14,6 +15,7 @@ import { LogOut, User, Settings } from 'lucide-react';
 
 export const Header = () => {
   const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const getInitials = (name: string) => {
     return name
@@ -59,7 +61,7 @@ export const Header = () => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Perfil</span>
               </DropdownMenuItem>
