@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Crown, User, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProfileFormData {
@@ -29,6 +30,37 @@ export default function Profile() {
       experience: profile?.experience || '',
     }
   });
+
+  // Função para obter o ícone e cor do tipo de usuário
+  const getUserTypeConfig = (userType: string) => {
+    switch (userType) {
+      case 'admin':
+        return {
+          label: 'Administrador',
+          icon: Crown,
+          variant: 'default' as const,
+          className: 'bg-yellow-100 text-yellow-800 border-yellow-300'
+        };
+      case 'manager':
+        return {
+          label: 'Gerente',
+          icon: Settings,
+          variant: 'secondary' as const,
+          className: 'bg-blue-100 text-blue-800 border-blue-300'
+        };
+      case 'employee':
+      default:
+        return {
+          label: 'Funcionário',
+          icon: User,
+          variant: 'outline' as const,
+          className: 'bg-green-100 text-green-800 border-green-300'
+        };
+    }
+  };
+
+  const userTypeConfig = getUserTypeConfig(profile?.user_type || 'employee');
+  const IconComponent = userTypeConfig.icon;
 
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -74,7 +106,13 @@ export default function Profile() {
     <Layout>
       <div className="container mx-auto py-6 max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Meu Perfil</h1>
+          <div className="flex items-center gap-4 mb-2">
+            <h1 className="text-3xl font-bold">Meu Perfil</h1>
+            <Badge className={userTypeConfig.className}>
+              <IconComponent className="w-3 h-3 mr-1" />
+              {userTypeConfig.label}
+            </Badge>
+          </div>
           <p className="text-muted-foreground">
             Gerencie suas informações pessoais e profissionais
           </p>
@@ -113,6 +151,19 @@ export default function Profile() {
                 />
                 <p className="text-sm text-muted-foreground mt-1">
                   O email não pode ser alterado
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Tipo de Usuário
+                </label>
+                <Badge className={userTypeConfig.className}>
+                  <IconComponent className="w-3 h-3 mr-1" />
+                  {userTypeConfig.label}
+                </Badge>
+                <p className="text-sm text-muted-foreground mt-1">
+                  O tipo de usuário é definido pela administração da empresa
                 </p>
               </div>
             </CardContent>

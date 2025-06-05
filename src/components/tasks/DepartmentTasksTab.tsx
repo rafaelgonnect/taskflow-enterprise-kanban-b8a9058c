@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Users } from 'lucide-react';
 import { TaskFormDialog } from './TaskFormDialog';
@@ -27,12 +27,15 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   
-  const { data: departments = [] } = useDepartments(companyId);
-  const { data: departmentTasks = [] } = useDepartmentTasks(selectedDepartment);
+  const { data: departments = [], isLoading: departmentsLoading } = useDepartments(companyId);
+  const { data: departmentTasks = [], isLoading: tasksLoading } = useDepartmentTasks(selectedDepartment);
   
   const { filters, setFilters, filteredTasks } = useTaskFilters(departmentTasks, user?.id);
   
   const createTask = useCreateTask();
+
+  // Memoizar os departamentos para evitar re-renders desnecessários
+  const memoizedDepartments = useMemo(() => departments, [departments]);
 
   const handleCreateTask = async (formData: any) => {
     try {
@@ -69,7 +72,18 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
     setShowDetailsDialog(true);
   };
 
-  if (departments.length === 0) {
+  if (departmentsLoading) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-slate-600">Carregando departamentos...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (memoizedDepartments.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
@@ -113,14 +127,14 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
 
       <Tabs value={selectedDepartment} onValueChange={setSelectedDepartment}>
         <TabsList className="grid w-full grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-          {departments.map((department) => (
+          {memoizedDepartments.map((department) => (
             <TabsTrigger key={department.id} value={department.id} className="text-sm">
               {department.name}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {departments.map((department) => (
+        {memoizedDepartments.map((department) => (
           <TabsContent key={department.id} value={department.id} className="space-y-6">
             <TaskFiltersComponent
               filters={filters}
@@ -129,13 +143,20 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
               showAssigneeFilter={true}
             />
 
-            <TaskBoardUnified 
-              tasks={filteredTasks}
-              companyId={companyId}
-              onTaskDetails={handleTaskDetails}
-              showOriginBadges={false}
-              allowDragDrop={true}
-            />
+            {tasksLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-slate-600">Carregando tarefas...</p>
+              </div>
+            ) : (
+              <TaskBoardUnified 
+                tasks={filteredTasks}
+                companyId={companyId}
+                onTaskDetails={handleTaskDetails}
+                showOriginBadges={false}
+                allowDragDrop={true}
+              />
+            )}
           </TabsContent>
         ))}
       </Tabs>

@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, Department } from '@/hooks/useDepartments';
 import { useCompanyUsers } from '@/hooks/useCompanyUsers';
+import { useAuth } from '@/hooks/useAuth';
+import { PermissionGuard } from '@/components/PermissionGuard';
 import { DepartmentMembersDialog } from './DepartmentMembersDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,10 +15,11 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { Building, Users, Plus, Edit, Trash2, MoreVertical, UserCheck } from 'lucide-react';
+import { Building, Users, Plus, Edit, Trash2, MoreVertical, UserCheck, AlertCircle } from 'lucide-react';
 
 export const DepartmentManagement = () => {
   const { selectedCompany } = useCompanyContext();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
@@ -32,6 +35,9 @@ export const DepartmentManagement = () => {
   const createDepartment = useCreateDepartment();
   const updateDepartment = useUpdateDepartment();
   const deleteDepartment = useDeleteDepartment();
+
+  // Verificar se o usuário pode criar departamentos (apenas admins e gerentes)
+  const canCreateDepartments = profile?.user_type === 'admin' || profile?.user_type === 'manager';
 
   const handleCreateDepartment = async () => {
     if (!selectedCompany || !formData.name.trim()) return;
@@ -145,77 +151,88 @@ export const DepartmentManagement = () => {
           <p className="text-slate-600">Gerencie departamentos da empresa {selectedCompany.name}</p>
         </div>
 
-        <Dialog open={showCreateDialog || !!editingDepartment} onOpenChange={(open) => !open && resetForm()}>
-          <DialogTrigger asChild>
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Departamento
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingDepartment ? 'Editar Departamento' : 'Criar Novo Departamento'}
-              </DialogTitle>
-              <DialogDescription>
-                {editingDepartment 
-                  ? 'Edite as informações do departamento'
-                  : 'Crie um novo departamento para a empresa'
-                }
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div>
-                <label className="text-sm font-medium">Nome do departamento</label>
-                <Input
-                  placeholder="Ex: Vendas, Marketing, TI..."
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
+        {canCreateDepartments ? (
+          <Dialog open={showCreateDialog || !!editingDepartment} onOpenChange={(open) => !open && resetForm()}>
+            <DialogTrigger asChild>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Departamento
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingDepartment ? 'Editar Departamento' : 'Criar Novo Departamento'}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingDepartment 
+                    ? 'Edite as informações do departamento'
+                    : 'Crie um novo departamento para a empresa'
+                  }
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <label className="text-sm font-medium">Nome do departamento</label>
+                  <Input
+                    placeholder="Ex: Vendas, Marketing, TI..."
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Descrição</label>
+                  <Textarea
+                    placeholder="Descrição do departamento..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Gerente do departamento</label>
+                  <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um gerente (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no-manager">Nenhum gerente</SelectItem>
+                      {usersLoading ? (
+                        <SelectItem value="loading" disabled>Carregando usuários...</SelectItem>
+                      ) : (
+                        users.map((user: any) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.full_name} ({user.email})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={resetForm}>
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={editingDepartment ? handleUpdateDepartment : handleCreateDepartment}
+                    disabled={!formData.name.trim() || createDepartment.isPending || updateDepartment.isPending}
+                  >
+                    {createDepartment.isPending || updateDepartment.isPending ? 'Salvando...' : 
+                     editingDepartment ? 'Atualizar' : 'Criar'}
+                  </Button>
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Descrição</label>
-                <Textarea
-                  placeholder="Descrição do departamento..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <Card className="border-orange-200 bg-orange-50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-orange-800">
+                <AlertCircle className="w-4 h-4" />
+                <p className="text-sm">Apenas administradores e gerentes podem criar departamentos.</p>
               </div>
-              <div>
-                <label className="text-sm font-medium">Gerente do departamento</label>
-                <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um gerente (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-manager">Nenhum gerente</SelectItem>
-                    {usersLoading ? (
-                      <SelectItem value="loading" disabled>Carregando usuários...</SelectItem>
-                    ) : (
-                      users.map((user: any) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.full_name} ({user.email})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={resetForm}>
-                  Cancelar
-                </Button>
-                <Button 
-                  onClick={editingDepartment ? handleUpdateDepartment : handleCreateDepartment}
-                  disabled={!formData.name.trim() || createDepartment.isPending || updateDepartment.isPending}
-                >
-                  {createDepartment.isPending || updateDepartment.isPending ? 'Salvando...' : 
-                   editingDepartment ? 'Atualizar' : 'Criar'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {departmentsLoading ? (
@@ -228,7 +245,12 @@ export const DepartmentManagement = () => {
           <CardContent className="p-6 text-center">
             <Building className="w-12 h-12 text-slate-400 mx-auto mb-4" />
             <p className="text-slate-600 mb-2">Nenhum departamento encontrado</p>
-            <p className="text-sm text-slate-500">Crie o primeiro departamento para começar</p>
+            <p className="text-sm text-slate-500">
+              {canCreateDepartments 
+                ? 'Crie o primeiro departamento para começar'
+                : 'Entre em contato com um administrador para criar departamentos'
+              }
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -266,26 +288,28 @@ export const DepartmentManagement = () => {
                       Membros
                     </Button>
                     
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditDialog(department)}>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteDepartment(department)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {canCreateDepartments && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditDialog(department)}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteDepartment(department)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
               </CardContent>
