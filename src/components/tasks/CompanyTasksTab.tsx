@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -192,7 +191,7 @@ export const CompanyTasksTab = ({ companyId }: CompanyTasksTabProps) => {
         companyId={companyId}
         onTaskDetails={handleTaskDetails}
         allowDragDrop={true}
-        showOriginBadge={true}
+        showOriginBadges={true}
       />
 
       {selectedTask && (
