@@ -58,15 +58,9 @@ export const NotificationCenter = () => {
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-
       <DropdownMenuTrigger asChild>
         <Tooltip>
           <TooltipTrigger asChild>
-
             <Button
               variant="ghost"
               size="sm"
@@ -83,17 +77,10 @@ export const NotificationCenter = () => {
                 </Badge>
               )}
             </Button>
-
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent>Notificações</TooltipContent>
-      </Tooltip>
-
           </TooltipTrigger>
           <TooltipContent>Notificações</TooltipContent>
         </Tooltip>
       </DropdownMenuTrigger>
-
       
       <DropdownMenuContent align="end" className="w-80 p-0">
         <Card className="border-0 shadow-lg">
