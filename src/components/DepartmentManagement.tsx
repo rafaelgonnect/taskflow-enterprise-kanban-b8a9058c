@@ -1,62 +1,89 @@
-
 import { useState } from 'react';
-import { useCompanyContext } from '@/contexts/CompanyContext';
-import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, Department } from '@/hooks/useDepartments';
-import { useCompanyUsers } from '@/hooks/useCompanyUsers';
-import { useAuth } from '@/hooks/useAuth';
-import { PermissionGuard } from '@/components/PermissionGuard';
-import { DepartmentMembersDialog } from './DepartmentMembersDialog';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Building2, Users, Settings, Trash2 } from 'lucide-react';
+import { useDepartments, useCreateDepartment, useDeleteDepartment } from '@/hooks/useDepartments';
+import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
+import { useToast } from '@/hooks/use-toast';
+import { useCompanyContext } from '@/contexts/CompanyContext';
+import { useAuth } from '@/hooks/useAuth';
+import { canCreateDepartments } from '@/utils/userPermissions';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useToast } from '@/hooks/use-toast';
-import { Building, Users, Plus, Edit, Trash2, MoreVertical, UserCheck, AlertCircle } from 'lucide-react';
+import { DepartmentMembersDialog } from './DepartmentMembersDialog';
 
 export const DepartmentManagement = () => {
   const { selectedCompany } = useCompanyContext();
   const { profile } = useAuth();
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [showMembersDialog, setShowMembersDialog] = useState(false);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    managerId: '',
   });
 
-  const { data: departments = [], isLoading: departmentsLoading } = useDepartments(selectedCompany?.id);
-  const { data: users = [], isLoading: usersLoading } = useCompanyUsers(selectedCompany?.id);
+  const canCreate = canCreateDepartments(profile);
+
+  const { data: departments, isLoading, refetch } = useDepartments(selectedCompany?.id || '');
   const createDepartment = useCreateDepartment();
-  const updateDepartment = useUpdateDepartment();
   const deleteDepartment = useDeleteDepartment();
+  const { data: members, refetch: refetchMembers } = useDepartmentMembers(selectedDepartmentId);
 
-  // Verificar se o usuário pode criar departamentos (apenas admins e gerentes)
-  const canCreateDepartments = profile?.user_type === 'admin' || profile?.user_type === 'manager';
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
 
-  const handleCreateDepartment = async () => {
-    if (!selectedCompany || !formData.name.trim()) return;
+  const handleCreate = async () => {
+    if (!selectedCompany) {
+      toast({
+        title: 'Erro',
+        description: 'Selecione uma empresa antes de criar um departamento.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       await createDepartment.mutateAsync({
+        companyId: selectedCompany.id,
         name: formData.name,
         description: formData.description,
-        companyId: selectedCompany.id,
-        managerId: formData.managerId === 'no-manager' ? undefined : formData.managerId || undefined,
       });
 
       toast({
         title: 'Departamento criado!',
-        description: `Departamento ${formData.name} criado com sucesso`,
+        description: `Departamento "${formData.name}" criado com sucesso.`,
       });
 
-      setFormData({ name: '', description: '', managerId: '' });
+      setFormData({ name: '', description: '' });
       setShowCreateDialog(false);
+      await refetch();
     } catch (error: any) {
       toast({
         title: 'Erro ao criar departamento',
@@ -66,47 +93,19 @@ export const DepartmentManagement = () => {
     }
   };
 
-  const handleUpdateDepartment = async () => {
-    if (!selectedCompany || !editingDepartment || !formData.name.trim()) return;
-
-    try {
-      await updateDepartment.mutateAsync({
-        id: editingDepartment.id,
-        name: formData.name,
-        description: formData.description,
-        companyId: selectedCompany.id,
-        managerId: formData.managerId === 'no-manager' ? undefined : formData.managerId || undefined,
-      });
-
-      toast({
-        title: 'Departamento atualizado!',
-        description: `Departamento ${formData.name} atualizado com sucesso`,
-      });
-
-      setFormData({ name: '', description: '', managerId: '' });
-      setEditingDepartment(null);
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao atualizar departamento',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleDeleteDepartment = async (department: Department) => {
-    if (!selectedCompany) return;
-
+  const handleDelete = async (departmentId: string, departmentName: string) => {
     try {
       await deleteDepartment.mutateAsync({
-        id: department.id,
-        companyId: selectedCompany.id,
+        companyId: selectedCompany?.id || '',
+        departmentId: departmentId,
       });
 
       toast({
         title: 'Departamento excluído!',
-        description: `Departamento ${department.name} excluído com sucesso`,
+        description: `Departamento "${departmentName}" excluído com sucesso.`,
       });
+
+      await refetch();
     } catch (error: any) {
       toast({
         title: 'Erro ao excluir departamento',
@@ -116,30 +115,30 @@ export const DepartmentManagement = () => {
     }
   };
 
-  const openEditDialog = (department: Department) => {
-    setEditingDepartment(department);
-    setFormData({
-      name: department.name,
-      description: department.description || '',
-      managerId: department.manager_id || 'no-manager',
-    });
+  const handleOpenMembersDialog = (departmentId: string) => {
+    setSelectedDepartmentId(departmentId);
+    setShowMembersDialog(true);
+    refetchMembers();
   };
 
-  const openMembersDialog = (department: Department) => {
-    setSelectedDepartment(department);
-  };
-
-  const resetForm = () => {
-    setFormData({ name: '', description: '', managerId: '' });
-    setEditingDepartment(null);
-    setShowCreateDialog(false);
+  const handleCloseMembersDialog = () => {
+    setShowMembersDialog(false);
+    setSelectedDepartmentId('');
   };
 
   if (!selectedCompany) {
     return (
-      <div className="text-center py-8">
-        <p className="text-slate-600">Selecione uma empresa para gerenciar departamentos</p>
-      </div>
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Building2 className="w-12 h-12 text-slate-400 mb-4" />
+          <h3 className="text-lg font-medium text-slate-900 mb-2">
+            Nenhuma empresa selecionada
+          </h3>
+          <p className="text-slate-600 text-center">
+            Selecione uma empresa para gerenciar os departamentos.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -147,170 +146,142 @@ export const DepartmentManagement = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Gestão de Departamentos</h1>
-          <p className="text-slate-600">Gerencie departamentos da empresa {selectedCompany.name}</p>
+          <h2 className="text-xl font-semibold text-slate-900">
+            Gerenciamento de Departamentos
+          </h2>
+          <p className="text-slate-600">
+            Crie, edite e gerencie os departamentos da sua empresa
+          </p>
         </div>
 
-        {canCreateDepartments ? (
-          <Dialog open={showCreateDialog || !!editingDepartment} onOpenChange={(open) => !open && resetForm()}>
+        {canCreate && (
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
-              <Button onClick={() => setShowCreateDialog(true)}>
+              <Button>
                 <Plus className="w-4 h-4 mr-2" />
-                Criar Departamento
+                Novo Departamento
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>
-                  {editingDepartment ? 'Editar Departamento' : 'Criar Novo Departamento'}
-                </DialogTitle>
+                <DialogTitle>Criar Departamento</DialogTitle>
                 <DialogDescription>
-                  {editingDepartment 
-                    ? 'Edite as informações do departamento'
-                    : 'Crie um novo departamento para a empresa'
-                  }
+                  Crie um novo departamento para sua empresa.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <label className="text-sm font-medium">Nome do departamento</label>
-                  <Input
-                    placeholder="Ex: Vendas, Marketing, TI..."
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="name" className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Nome
+                  </label>
+                  <div className="col-span-3">
+                    <Input
+                      id="name"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="Nome do departamento"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Descrição</label>
-                  <Textarea
-                    placeholder="Descrição do departamento..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Gerente do departamento</label>
-                  <Select value={formData.managerId} onValueChange={(value) => setFormData({ ...formData, managerId: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um gerente (opcional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="no-manager">Nenhum gerente</SelectItem>
-                      {usersLoading ? (
-                        <SelectItem value="loading" disabled>Carregando usuários...</SelectItem>
-                      ) : (
-                        users.map((user: any) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.full_name} ({user.email})
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={resetForm}>
-                    Cancelar
-                  </Button>
-                  <Button 
-                    onClick={editingDepartment ? handleUpdateDepartment : handleCreateDepartment}
-                    disabled={!formData.name.trim() || createDepartment.isPending || updateDepartment.isPending}
-                  >
-                    {createDepartment.isPending || updateDepartment.isPending ? 'Salvando...' : 
-                     editingDepartment ? 'Atualizar' : 'Criar'}
-                  </Button>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label htmlFor="description" className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Descrição
+                  </label>
+                  <div className="col-span-3">
+                    <Textarea
+                      id="description"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleChange}
+                      placeholder="Descrição do departamento"
+                    />
+                  </div>
                 </div>
               </div>
+              <DialogFooter>
+                <Button type="button" onClick={handleCreate} disabled={createDepartment.isLoading}>
+                  {createDepartment.isLoading ? 'Criando...' : 'Criar'}
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
-        ) : (
-          <Card className="border-orange-200 bg-orange-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-orange-800">
-                <AlertCircle className="w-4 h-4" />
-                <p className="text-sm">Apenas administradores e gerentes podem criar departamentos.</p>
-              </div>
-            </CardContent>
-          </Card>
         )}
       </div>
 
-      {departmentsLoading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-slate-600">Carregando departamentos...</p>
-        </div>
-      ) : departments.length === 0 ? (
+      {isLoading ? (
         <Card>
-          <CardContent className="p-6 text-center">
-            <Building className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 mb-2">Nenhum departamento encontrado</p>
-            <p className="text-sm text-slate-500">
-              {canCreateDepartments 
-                ? 'Crie o primeiro departamento para começar'
-                : 'Entre em contato com um administrador para criar departamentos'
-              }
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-slate-600">Carregando departamentos...</p>
+          </CardContent>
+        </Card>
+      ) : departments?.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Building2 className="w-12 h-12 text-slate-400 mb-4" />
+            <h3 className="text-lg font-medium text-slate-900 mb-2">
+              Nenhum departamento encontrado
+            </h3>
+            <p className="text-slate-600 text-center">
+              Crie o primeiro departamento da sua empresa.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {departments.map((department) => (
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {departments?.map((department) => (
             <Card key={department.id}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-medium text-slate-900">{department.name}</h3>
-                      {department.manager && (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <UserCheck className="w-3 h-3" />
-                          Gerente: {department.manager.full_name}
-                        </Badge>
-                      )}
-                    </div>
-                    {department.description && (
-                      <p className="text-sm text-slate-600 mb-3">{department.description}</p>
-                    )}
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <Users className="w-4 h-4" />
-                      <span>Criado em {new Date(department.created_at).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openMembersDialog(department)}
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      Membros
-                    </Button>
-                    
-                    {canCreateDepartments && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditDialog(department)}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteDepartment(department)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                  </div>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  {department.name}
+                  <Badge variant="secondary">
+                    <Users className="w-3 h-3 mr-1" />
+                    {department.members_count || 0}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-slate-600 line-clamp-3">
+                  {department.description || 'Sem descrição'}
+                </p>
+                <div className="flex items-center justify-end mt-4 space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleOpenMembersDialog(department.id)}
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Gerenciar Membros
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Tem certeza?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação é irreversível. Tem certeza de que deseja
+                          excluir este departamento?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(department.id, department.name)}
+                          disabled={deleteDepartment.isLoading}
+                        >
+                          {deleteDepartment.isLoading ? 'Excluindo...' : 'Excluir'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
@@ -318,16 +289,14 @@ export const DepartmentManagement = () => {
         </div>
       )}
 
-      {/* Dialog de Membros do Departamento */}
-      {selectedDepartment && (
-        <DepartmentMembersDialog
-          isOpen={!!selectedDepartment}
-          onClose={() => setSelectedDepartment(null)}
-          departmentId={selectedDepartment.id}
-          departmentName={selectedDepartment.name}
-          companyId={selectedCompany.id}
-        />
-      )}
+      <DepartmentMembersDialog
+        isOpen={showMembersDialog}
+        onClose={handleCloseMembersDialog}
+        departmentId={selectedDepartmentId}
+        companyId={selectedCompany.id}
+        members={members}
+        refetchMembers={refetchMembers}
+      />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Eye, EyeOff } from 'lucide-react';
@@ -11,7 +11,11 @@ export const TasksPublicWidgets = () => {
   const { selectedCompany } = useCompanyContext();
   const [isVisible, setIsVisible] = useState(true);
 
-  if (!selectedCompany) {
+  const handleToggleVisibility = useCallback((visible: boolean) => {
+    setIsVisible(visible);
+  }, []);
+
+  if (!selectedCompany?.id) {
     return null;
   }
 
@@ -20,7 +24,7 @@ export const TasksPublicWidgets = () => {
       <div className="mb-6">
         <Button
           variant="outline"
-          onClick={() => setIsVisible(true)}
+          onClick={() => handleToggleVisibility(true)}
           className="w-full"
         >
           <Eye className="w-4 h-4 mr-2" />
@@ -40,7 +44,7 @@ export const TasksPublicWidgets = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsVisible(false)}
+            onClick={() => handleToggleVisibility(false)}
           >
             <EyeOff className="w-4 h-4 mr-2" />
             Esconder

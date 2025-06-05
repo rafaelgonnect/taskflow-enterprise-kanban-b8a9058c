@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Users } from 'lucide-react';
 import { TaskFormDialog } from './TaskFormDialog';
@@ -35,9 +35,13 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
   const createTask = useCreateTask();
 
   // Memoizar os departamentos para evitar re-renders desnecessários
-  const memoizedDepartments = useMemo(() => departments, [departments]);
+  const memoizedDepartments = useMemo(() => {
+    if (!Array.isArray(departments)) return [];
+    return departments;
+  }, [departments]);
 
-  const handleCreateTask = async (formData: any) => {
+  // Memoizar callbacks para evitar re-renders
+  const handleCreateTask = useCallback(async (formData: any) => {
     try {
       await createTask.mutateAsync({
         title: formData.title,
@@ -64,13 +68,18 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
         variant: 'destructive',
       });
     }
-  };
+  }, [createTask, companyId, selectedDepartment, toast]);
 
-  const handleTaskDetails = (task: Task) => {
+  const handleTaskDetails = useCallback((task: Task) => {
     console.log('Abrindo detalhes da tarefa departamental:', task);
     setSelectedTask(task);
     setShowDetailsDialog(true);
-  };
+  }, []);
+
+  const handleCloseDetails = useCallback(() => {
+    setShowDetailsDialog(false);
+    setSelectedTask(null);
+  }, []);
 
   if (departmentsLoading) {
     return (
@@ -165,10 +174,7 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
         <TaskDetailsDialog
           task={selectedTask}
           isOpen={showDetailsDialog}
-          onClose={() => {
-            setShowDetailsDialog(false);
-            setSelectedTask(null);
-          }}
+          onClose={handleCloseDetails}
           companyId={companyId}
         />
       )}
