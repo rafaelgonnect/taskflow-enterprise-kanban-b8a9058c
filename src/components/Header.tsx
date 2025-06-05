@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, User, Settings } from 'lucide-react';
+import { NotificationCenter } from './NotificationCenter';
 
 export const Header = () => {
   const { user, profile, signOut } = useAuth();
@@ -56,6 +57,8 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          <NotificationCenter />
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
