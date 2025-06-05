@@ -16,6 +16,7 @@ import PublicTasks from "./pages/PublicTasks";
 import InviteAccept from "./pages/InviteAccept";
 import Roadmap from "./pages/Roadmap";
 import Profile from "./pages/Profile";
+import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { CompanyCreationModal } from "./components/CompanyCreationModal";
@@ -42,6 +43,7 @@ function App() {
                 <Route path="/roles" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
                 <Route path="/company-settings" element={<ProtectedRoute><CompanySettings /></ProtectedRoute>} />
                 <Route path="/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
+                <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <CompanyCreationModal />
