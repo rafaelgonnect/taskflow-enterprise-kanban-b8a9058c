@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PersonalTasksTab } from './PersonalTasksTab';
 import { DepartmentTasksTab } from './DepartmentTasksTab';
 import { CompanyTasksTab } from './CompanyTasksTab';
-import { TasksPublicWidgets } from './TasksPublicWidgets';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 
 export const TaskTabs = () => {
@@ -25,8 +24,6 @@ export const TaskTabs = () => {
         <h1 className="text-2xl font-bold text-slate-900">Minhas Tarefas</h1>
         <p className="text-slate-600">Gerencie suas tarefas por categoria</p>
       </div>
-
-      <TasksPublicWidgets />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
