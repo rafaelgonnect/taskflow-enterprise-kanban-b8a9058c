@@ -1,16 +1,18 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TaskBoardUnified } from './TaskBoardUnified';
 import { TaskFormDialog } from './TaskFormDialog';
 import { TaskDetailsDialog } from '@/components/TaskDetailsDialog';
 import { useDepartmentTasks, useAcceptPublicTask } from '@/hooks/usePublicTasks';
-import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
+import { useUserDepartments } from '@/hooks/useDepartmentMembers';
 import { useCreateTask, Task } from '@/hooks/useTasks';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Users, CheckCircle2, Info } from 'lucide-react';
+import { Plus, Users, CheckCircle2, Info, Building2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DepartmentTasksTabProps {
@@ -24,14 +26,20 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [acceptingTask, setAcceptingTask] = useState<string | null>(null);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
 
   // Buscar departamentos do usuário
-  const { data: allDepartmentMembers = [] } = useDepartmentMembers('');
-  const userDepartments = allDepartmentMembers
-    .filter(member => member.user_id === user?.id && member.is_active)
-    .map(member => member.department_id);
+  const { data: userDepartments = [] } = useUserDepartments();
+  
+  // Filtrar departamentos da empresa atual
+  const companyDepartments = userDepartments.filter(
+    dept => dept.departments?.company_id === companyId
+  );
 
-  const { data: departmentTasks = [] } = useDepartmentTasks(userDepartments[0]);
+  // Selecionar primeiro departamento por padrão
+  const currentDepartmentId = selectedDepartment || companyDepartments[0]?.department_id || '';
+
+  const { data: departmentTasks = [] } = useDepartmentTasks(currentDepartmentId);
   const createTask = useCreateTask();
   const acceptTask = useAcceptPublicTask();
 
@@ -46,7 +54,7 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
         description: formData.description,
         priority: formData.priority,
         companyId: companyId,
-        departmentId: userDepartments[0],
+        departmentId: currentDepartmentId,
         dueDate: formData.dueDate || undefined,
         estimatedHours: formData.estimatedHours ? parseInt(formData.estimatedHours) : undefined,
         taskType: 'department',
@@ -110,7 +118,7 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
     }
   };
 
-  if (userDepartments.length === 0) {
+  if (companyDepartments.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
@@ -119,7 +127,7 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
             Sem departamento
           </h3>
           <p className="text-slate-600 text-center">
-            Você não está em nenhum departamento. Entre em contato com seu administrador.
+            Você não está em nenhum departamento desta empresa. Entre em contato com seu administrador.
           </p>
         </CardContent>
       </Card>
@@ -128,6 +136,35 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Seletor de departamento se houver múltiplos */}
+      {companyDepartments.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Selecionar Departamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Select 
+              value={selectedDepartment || companyDepartments[0]?.department_id} 
+              onValueChange={setSelectedDepartment}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione um departamento" />
+              </SelectTrigger>
+              <SelectContent>
+                {companyDepartments.map((dept) => (
+                  <SelectItem key={dept.department_id} value={dept.department_id}>
+                    {dept.departments?.name || 'Departamento'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Seção de tarefas públicas para aceitar */}
       {publicTasks.length > 0 && (
         <div>
@@ -192,6 +229,9 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
           <h3 className="text-lg font-medium text-slate-900">Minhas Tarefas Departamentais</h3>
           <p className="text-sm text-slate-600">
             Tarefas do departamento atribuídas a você
+            {companyDepartments.find(d => d.department_id === currentDepartmentId)?.departments?.name && 
+              ` - ${companyDepartments.find(d => d.department_id === currentDepartmentId)?.departments?.name}`
+            }
           </p>
         </div>
         
@@ -201,7 +241,7 @@ export const DepartmentTasksTab = ({ companyId }: DepartmentTasksTabProps) => {
           onSubmit={handleCreateTask}
           taskType="department"
           companyId={companyId}
-          departmentId={userDepartments[0]}
+          departmentId={currentDepartmentId}
           trigger={
             <Button>
               <Plus className="w-4 h-4 mr-2" />

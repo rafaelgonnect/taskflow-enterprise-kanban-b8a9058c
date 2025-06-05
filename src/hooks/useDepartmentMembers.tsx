@@ -12,6 +12,7 @@ export interface DepartmentMember {
   is_active: boolean;
   user_name?: string;
   user_email?: string;
+  department_name?: string;
 }
 
 export function useDepartmentMembers(departmentId?: string) {
@@ -64,6 +65,44 @@ export function useDepartmentMembers(departmentId?: string) {
   });
 }
 
+// Nova função para buscar todos os departamentos de um usuário
+export function useUserDepartments() {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['user-departments', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      console.log('Buscando departamentos do usuário:', user.id);
+      
+      const { data: departmentMembers, error } = await supabase
+        .from('department_members')
+        .select(`
+          *,
+          departments:department_id (
+            id,
+            name,
+            description,
+            company_id
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+      
+      if (error) {
+        console.error('Erro ao buscar departamentos do usuário:', error);
+        throw error;
+      }
+      
+      console.log('Departamentos encontrados:', departmentMembers);
+      
+      return departmentMembers || [];
+    },
+    enabled: !!user?.id,
+  });
+}
+
 export function useAddDepartmentMember() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -94,6 +133,7 @@ export function useAddDepartmentMember() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['department-members', variables.departmentId] });
+      queryClient.invalidateQueries({ queryKey: ['user-departments'] });
     },
   });
 }
@@ -119,6 +159,7 @@ export function useRemoveDepartmentMember() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['department-members', variables.departmentId] });
+      queryClient.invalidateQueries({ queryKey: ['user-departments'] });
     },
   });
 }
