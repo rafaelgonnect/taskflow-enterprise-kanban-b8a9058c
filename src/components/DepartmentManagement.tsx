@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +41,7 @@ export const DepartmentManagement = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showMembersDialog, setShowMembersDialog] = useState(false);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+  const [selectedDepartmentName, setSelectedDepartmentName] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -96,8 +98,8 @@ export const DepartmentManagement = () => {
   const handleDelete = async (departmentId: string, departmentName: string) => {
     try {
       await deleteDepartment.mutateAsync({
+        id: departmentId,
         companyId: selectedCompany?.id || '',
-        departmentId: departmentId,
       });
 
       toast({
@@ -115,8 +117,9 @@ export const DepartmentManagement = () => {
     }
   };
 
-  const handleOpenMembersDialog = (departmentId: string) => {
+  const handleOpenMembersDialog = (departmentId: string, departmentName: string) => {
     setSelectedDepartmentId(departmentId);
+    setSelectedDepartmentName(departmentName);
     setShowMembersDialog(true);
     refetchMembers();
   };
@@ -124,6 +127,7 @@ export const DepartmentManagement = () => {
   const handleCloseMembersDialog = () => {
     setShowMembersDialog(false);
     setSelectedDepartmentId('');
+    setSelectedDepartmentName('');
   };
 
   if (!selectedCompany) {
@@ -200,8 +204,8 @@ export const DepartmentManagement = () => {
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" onClick={handleCreate} disabled={createDepartment.isLoading}>
-                  {createDepartment.isLoading ? 'Criando...' : 'Criar'}
+                <Button type="button" onClick={handleCreate} disabled={createDepartment.isPending}>
+                  {createDepartment.isPending ? 'Criando...' : 'Criar'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -237,7 +241,7 @@ export const DepartmentManagement = () => {
                   {department.name}
                   <Badge variant="secondary">
                     <Users className="w-3 h-3 mr-1" />
-                    {department.members_count || 0}
+                    {members?.filter(m => m.department_id === department.id).length || 0}
                   </Badge>
                 </CardTitle>
               </CardHeader>
@@ -249,7 +253,7 @@ export const DepartmentManagement = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleOpenMembersDialog(department.id)}
+                    onClick={() => handleOpenMembersDialog(department.id, department.name)}
                   >
                     <Users className="w-4 h-4 mr-2" />
                     Gerenciar Membros
@@ -275,9 +279,9 @@ export const DepartmentManagement = () => {
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDelete(department.id, department.name)}
-                          disabled={deleteDepartment.isLoading}
+                          disabled={deleteDepartment.isPending}
                         >
-                          {deleteDepartment.isLoading ? 'Excluindo...' : 'Excluir'}
+                          {deleteDepartment.isPending ? 'Excluindo...' : 'Excluir'}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -293,9 +297,8 @@ export const DepartmentManagement = () => {
         isOpen={showMembersDialog}
         onClose={handleCloseMembersDialog}
         departmentId={selectedDepartmentId}
+        departmentName={selectedDepartmentName}
         companyId={selectedCompany.id}
-        members={members}
-        refetchMembers={refetchMembers}
       />
     </div>
   );
