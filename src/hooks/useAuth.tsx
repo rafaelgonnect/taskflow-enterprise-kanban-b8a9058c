@@ -8,6 +8,11 @@ interface Profile {
   email: string;
   full_name: string;
   user_type: 'admin' | 'employee';
+  created_at?: string;
+  updated_at?: string;
+  skills?: string[];
+  languages?: string[];
+  experience?: string;
 }
 
 interface AuthContextType {
@@ -16,6 +21,9 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error?: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error?: any }>;
+  updateProfile: (data: Partial<Profile>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,7 +50,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 .eq('id', session.user.id)
                 .single();
               
-              setProfile(profileData);
+              if (profileData) {
+                const mappedProfile: Profile = {
+                  id: profileData.id,
+                  email: profileData.email,
+                  full_name: profileData.full_name,
+                  user_type: profileData.user_type === 'company_owner' ? 'admin' : 'employee',
+                  created_at: profileData.created_at,
+                  updated_at: profileData.updated_at,
+                  skills: profileData.skills || [],
+                  languages: profileData.languages || [],
+                  experience: profileData.experience || ''
+                };
+                setProfile(mappedProfile);
+              }
             } catch (error) {
               console.error('Erro ao buscar perfil:', error);
             }
@@ -66,7 +87,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .eq('id', session.user.id)
           .single()
           .then(({ data: profileData }) => {
-            setProfile(profileData);
+            if (profileData) {
+              const mappedProfile: Profile = {
+                id: profileData.id,
+                email: profileData.email,
+                full_name: profileData.full_name,
+                user_type: profileData.user_type === 'company_owner' ? 'admin' : 'employee',
+                created_at: profileData.created_at,
+                updated_at: profileData.updated_at,
+                skills: profileData.skills || [],
+                languages: profileData.languages || [],
+                experience: profileData.experience || ''
+              };
+              setProfile(mappedProfile);
+            }
             setLoading(false);
           });
       } else {
@@ -77,11 +111,70 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const signUp = async (email: string, password: string, fullName: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      });
+      return { error };
+    } catch (error) {
+      return { error };
+    }
+  };
+
+  const updateProfile = async (data: Partial<Profile>) => {
+    if (!user) throw new Error('Usuário não autenticado');
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: data.full_name,
+        experience: data.experience,
+        skills: data.skills,
+        languages: data.languages,
+      })
+      .eq('id', user.id);
+
+    if (error) throw error;
+
+    // Atualizar estado local
+    if (profile) {
+      setProfile({
+        ...profile,
+        ...data,
+      });
+    }
+  };
+
   const signOut = async () => {
     try {
       console.log('Iniciando logout...');
       
-      // Limpar estado local primeiro
+      // Logout do Supabase primeiro
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Erro no logout do Supabase:', error);
+      }
+      
+      // Limpar estado local
       setUser(null);
       setSession(null);
       setProfile(null);
@@ -92,20 +185,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Limpar sessionStorage
       sessionStorage.clear();
       
-      // Logout do Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Erro no logout do Supabase:', error);
-      }
-      
       console.log('Logout concluído');
+      
+      // Forçar redirecionamento
+      window.location.href = '/auth';
     } catch (error) {
       console.error('Erro durante logout:', error);
+      // Em caso de erro, forçar redirecionamento mesmo assim
+      window.location.href = '/auth';
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      profile, 
+      loading, 
+      signOut, 
+      signIn, 
+      signUp, 
+      updateProfile 
+    }}>
       {children}
     </AuthContext.Provider>
   );

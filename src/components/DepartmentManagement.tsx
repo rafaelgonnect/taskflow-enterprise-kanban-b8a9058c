@@ -9,7 +9,6 @@ import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import { useToast } from '@/hooks/use-toast';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 import { useAuth } from '@/hooks/useAuth';
-import { canCreateDepartments } from '@/utils/userPermissions';
 import {
   Dialog,
   DialogContent,
@@ -47,7 +46,8 @@ export const DepartmentManagement = () => {
     description: '',
   });
 
-  const canCreate = canCreateDepartments(profile);
+  // Verificar se o usuário pode criar departamentos
+  const canCreate = profile?.user_type === 'admin';
 
   const { data: departments, isLoading, refetch } = useDepartments(selectedCompany?.id || '');
   const createDepartment = useCreateDepartment();
