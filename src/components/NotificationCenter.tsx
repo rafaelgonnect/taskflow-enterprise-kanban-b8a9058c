@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -57,19 +58,29 @@ export const NotificationCenter = () => {
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
-          {totalCount > 0 ? <BellDot className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
-          {totalCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="relative"
+              aria-label="Notificações"
             >
-              {totalCount > 99 ? '99+' : totalCount}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
+              {totalCount > 0 ? <BellDot className="h-5 w-5" /> : <Bell className="h-5 w-5" />}
+              {totalCount > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                >
+                  {totalCount > 99 ? '99+' : totalCount}
+                </Badge>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+        </TooltipTrigger>
+        <TooltipContent>Notificações</TooltipContent>
+      </Tooltip>
       
       <DropdownMenuContent align="end" className="w-80 p-0">
         <Card className="border-0 shadow-lg">
