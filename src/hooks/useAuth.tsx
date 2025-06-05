@@ -28,6 +28,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Função auxiliar para converter Json para string[]
+const convertJsonToStringArray = (jsonValue: any): string[] => {
+  if (Array.isArray(jsonValue)) {
+    return jsonValue.filter(item => typeof item === 'string');
+  }
+  return [];
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -58,8 +66,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   user_type: profileData.user_type === 'company_owner' ? 'admin' : 'employee',
                   created_at: profileData.created_at,
                   updated_at: profileData.updated_at,
-                  skills: profileData.skills || [],
-                  languages: profileData.languages || [],
+                  skills: convertJsonToStringArray(profileData.skills),
+                  languages: convertJsonToStringArray(profileData.languages),
                   experience: profileData.experience || ''
                 };
                 setProfile(mappedProfile);
@@ -95,8 +103,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 user_type: profileData.user_type === 'company_owner' ? 'admin' : 'employee',
                 created_at: profileData.created_at,
                 updated_at: profileData.updated_at,
-                skills: profileData.skills || [],
-                languages: profileData.languages || [],
+                skills: convertJsonToStringArray(profileData.skills),
+                languages: convertJsonToStringArray(profileData.languages),
                 experience: profileData.experience || ''
               };
               setProfile(mappedProfile);
@@ -168,16 +176,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       console.log('Iniciando logout...');
       
-      // Logout do Supabase primeiro
+      // Limpar estado local primeiro
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      
+      // Logout do Supabase
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Erro no logout do Supabase:', error);
       }
-      
-      // Limpar estado local
-      setUser(null);
-      setSession(null);
-      setProfile(null);
       
       // Limpar localStorage
       localStorage.clear();
