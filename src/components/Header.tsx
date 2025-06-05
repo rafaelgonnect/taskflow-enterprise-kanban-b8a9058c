@@ -28,10 +28,18 @@ export const Header = () => {
 
   const handleSignOut = async () => {
     try {
+      console.log('Header: Iniciando logout...');
       await signOut();
-      navigate('/auth');
+      console.log('Header: Logout concluído, redirecionando...');
+      
+      // Forçar limpeza do estado e redirecionamento
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 100);
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
+      // Em caso de erro, forçar redirecionamento mesmo assim
+      window.location.href = '/auth';
     }
   };
 

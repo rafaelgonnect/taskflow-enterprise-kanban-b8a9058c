@@ -134,7 +134,8 @@ export function useCreateTask() {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      // Invalidar todas as queries de tarefas
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['company-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['public-department-tasks'] });
@@ -182,7 +183,10 @@ export function useUpdateTask() {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      // Invalidar todas as queries de tarefas para garantir atualização
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['company-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-history', variables.id] });
     },
   });
@@ -213,7 +217,10 @@ export function useDeleteTask() {
       console.log('Tarefa deletada com sucesso');
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      // Invalidar todas as queries de tarefas
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['company-tasks'] });
     },
   });
 }
@@ -253,8 +260,18 @@ export function useUpdateTaskStatus() {
       return data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['personal-tasks', variables.companyId] });
+      // Invalidar TODAS as queries de tarefas para garantir atualização em tempo real
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['company-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
+      
+      // Forçar refetch imediato
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['personal-tasks'] });
+        queryClient.refetchQueries({ queryKey: ['department-tasks'] });
+        queryClient.refetchQueries({ queryKey: ['company-tasks'] });
+      }, 100);
     },
   });
 }

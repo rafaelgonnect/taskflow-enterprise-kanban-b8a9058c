@@ -48,15 +48,24 @@ export function useTaskHistory(taskId: string) {
         return acc;
       }, {} as Record<string, string>);
 
-      const result = history.map(entry => ({
+      // Remover duplicatas baseado em action, changed_at e changed_by
+      const uniqueHistory = history.reduce((acc, entry) => {
+        const key = `${entry.action}-${entry.changed_at}-${entry.changed_by}-${entry.old_value}-${entry.new_value}`;
+        if (!acc.find(item => `${item.action}-${item.changed_at}-${item.changed_by}-${item.old_value}-${item.new_value}` === key)) {
+          acc.push(entry);
+        }
+        return acc;
+      }, [] as typeof history);
+
+      const result = uniqueHistory.map(entry => ({
         ...entry,
         user_name: profilesMap[entry.changed_by] || 'Sistema'
       })) as TaskHistory[];
       
-      console.log('Histórico processado:', result);
+      console.log('Histórico processado (sem duplicatas):', result);
       return result;
     },
     enabled: !!taskId,
-    refetchInterval: 5000, // Atualizar a cada 5 segundos
+    refetchInterval: 10000, // Atualizar a cada 10 segundos
   });
 }

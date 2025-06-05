@@ -27,8 +27,6 @@ export function useTaskAttachments(taskId: string) {
         .eq('task_id', taskId)
         .order('created_at', { ascending: false });
       
-      console.log('Resultado dos anexos:', { data, error });
-      
       if (error) {
         console.error('Erro ao buscar anexos:', error);
         throw error;
@@ -87,13 +85,16 @@ export function useUploadAttachment() {
         throw error;
       }
 
-      // Remover criação manual de histórico - deixar apenas o trigger do banco
       console.log('Anexo salvo com sucesso:', data);
       return data;
     },
     onSuccess: (_, variables) => {
+      // Invalidar queries para atualizar a interface
       queryClient.invalidateQueries({ queryKey: ['task-attachments', variables.taskId] });
       queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['personal-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['department-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['company-tasks'] });
     },
   });
 }
@@ -127,6 +128,7 @@ export function useDeleteAttachment() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['task-attachments', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task-history', variables.taskId] });
     },
   });
 }
