@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Building2, Users, Settings, Trash2 } from 'lucide-react';
+import { Plus, Building2, Users, Settings, Trash2, UserCheck } from 'lucide-react';
 import { useDepartments, useCreateDepartment, useDeleteDepartment } from '@/hooks/useDepartments';
 import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import { useToast } from '@/hooks/use-toast';
@@ -235,21 +235,51 @@ export const DepartmentManagement = () => {
       ) : (
         <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {departments?.map((department) => (
-            <Card key={department.id}>
-              <CardHeader>
+            <Card key={department.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
-                  {department.name}
+                  <span className="text-lg">{department.name}</span>
                   <Badge variant="secondary">
                     <Users className="w-3 h-3 mr-1" />
                     {members?.filter(m => m.department_id === department.id).length || 0}
                   </Badge>
                 </CardTitle>
+                
+                {/* Gerente do Departamento - Visível e destacado */}
+                {department.manager ? (
+                  <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                    <UserCheck className="w-4 h-4 text-blue-600" />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium text-blue-800 uppercase tracking-wide">
+                        Gerente
+                      </span>
+                      <span className="text-sm font-semibold text-blue-900">
+                        {department.manager.full_name}
+                      </span>
+                      <span className="text-xs text-blue-600">
+                        {department.manager.email}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                    <UserCheck className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        Gerente
+                      </span>
+                      <p className="text-sm text-gray-600">Não definido</p>
+                    </div>
+                  </div>
+                )}
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-600 line-clamp-3">
+              
+              <CardContent className="pt-0">
+                <p className="text-sm text-slate-600 line-clamp-3 mb-4">
                   {department.description || 'Sem descrição'}
                 </p>
-                <div className="flex items-center justify-end mt-4 space-x-2">
+                
+                <div className="flex items-center justify-end space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
