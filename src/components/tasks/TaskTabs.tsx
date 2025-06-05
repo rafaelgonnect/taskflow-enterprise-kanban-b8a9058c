@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PersonalTasksTab } from './PersonalTasksTab';
 import { DepartmentTasksTab } from './DepartmentTasksTab';
 import { CompanyTasksTab } from './CompanyTasksTab';
@@ -44,24 +43,9 @@ export const TaskTabs = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="personal">Pessoais</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>Tarefas atribuídas somente a você</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="department">Departamentais</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>Tarefas do seu departamento</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <TabsTrigger value="company">Empresariais</TabsTrigger>
-            </TooltipTrigger>
-            <TooltipContent>Tarefas válidas para toda a empresa</TooltipContent>
-          </Tooltip>
+          <TabsTrigger value="personal">Pessoais</TabsTrigger>
+          <TabsTrigger value="department">Departamentais</TabsTrigger>
+          <TabsTrigger value="company">Empresariais</TabsTrigger>
         </TabsList>
 
         <TabsContent value="personal" className="space-y-4">

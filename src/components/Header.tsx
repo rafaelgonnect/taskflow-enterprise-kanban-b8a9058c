@@ -11,8 +11,7 @@ import {
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, User, Settings, HelpCircle } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { LogOut, User, Settings } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 
 export const Header = () => {
@@ -58,20 +57,6 @@ export const Header = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/help')}
-                aria-label="Ajuda"
-              >
-                <HelpCircle className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Ajuda</TooltipContent>
-          </Tooltip>
-
           <NotificationCenter />
           
           <DropdownMenu>
