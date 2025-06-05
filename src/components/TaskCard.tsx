@@ -4,7 +4,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Task } from '@/hooks/useTasks';
 import { TaskTransferDialog } from './tasks/TaskTransferDialog';
 import { 
@@ -106,19 +105,9 @@ export const TaskCard = ({
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      aria-label="Ações"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Ações</TooltipContent>
-                </Tooltip>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {onDetails && (
