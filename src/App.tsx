@@ -18,6 +18,7 @@ import Roadmap from "./pages/Roadmap";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { CompanyCreationModal } from "./components/CompanyCreationModal";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ function App() {
                 <Route path="/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <CompanyCreationModal />
             </BrowserRouter>
           </CompanyProvider>
         </AuthProvider>

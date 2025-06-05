@@ -8,17 +8,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Building2, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 
-interface CompanyCreationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function CompanyCreationModal({ isOpen, onClose }: CompanyCreationModalProps) {
+export function CompanyCreationModal() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const createCompanyMutation = useCreateCompany();
   const { user } = useAuth();
+  const { showCreateModal, setShowCreateModal } = useCompanyContext();
 
   const [companyData, setCompanyData] = useState({
     name: '',
@@ -54,9 +51,9 @@ export function CompanyCreationModal({ isOpen, onClose }: CompanyCreationModalPr
       console.log('✅ MODAL: Empresa criada com sucesso!');
       toast.success('Empresa criada com sucesso! Bem-vindo ao TaskFlow SaaS!');
       
-      // Limpar formulário
+      // Limpar formulário e fechar modal
       setCompanyData({ name: '', description: '' });
-      onClose();
+      setShowCreateModal(false);
       
     } catch (error: any) {
       console.error('❌ MODAL: Erro completo na criação da empresa:', error);
@@ -78,8 +75,10 @@ export function CompanyCreationModal({ isOpen, onClose }: CompanyCreationModalPr
     }
   };
 
+  if (!showCreateModal) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
+    <Dialog open={showCreateModal} onOpenChange={() => {}}>
       <DialogContent className="sm:max-w-md" onPointerDownOutside={() => {}} onEscapeKeyDown={() => {}}>
         <DialogHeader className="text-center">
           <div className="flex justify-center mb-4">

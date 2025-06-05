@@ -10,14 +10,27 @@ interface CompanyContextType {
   companies: Company[];
   isLoading: boolean;
   switchCompany: (companyId: string) => void;
+  showCreateModal: boolean;
+  setShowCreateModal: (show: boolean) => void;
 }
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
 export function CompanyProvider({ children }: { children: React.ReactNode }) {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const { user } = useAuth();
   const { data: companies = [], isLoading } = useCompanies();
+
+  // Verificar se deve mostrar o modal de criação de empresa
+  useEffect(() => {
+    if (user && !isLoading && companies.length === 0) {
+      console.log('Usuário logado sem empresas, mostrando modal de criação');
+      setShowCreateModal(true);
+    } else if (companies.length > 0) {
+      setShowCreateModal(false);
+    }
+  }, [user, companies, isLoading]);
 
   // Auto-selecionar primeira empresa disponível
   useEffect(() => {
@@ -54,6 +67,8 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
       companies,
       isLoading,
       switchCompany,
+      showCreateModal,
+      setShowCreateModal,
     }}>
       {children}
     </CompanyContext.Provider>
